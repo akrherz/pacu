@@ -1317,12 +1317,20 @@
   tgt <- df[[tgt.col]]
   df <- subset(df, edge.distance > edge.threshold)
   mean.tgt <- mean(tgt)
+  lower.limit <- 0
   sd.tgt <- stats::sd(tgt)
+  
+  if(inherits(mean.tgt, 'units')){
+    units(sd.tgt) <- units(mean.tgt)
+    units(lower.limit) <- units(mean.tgt)
+  }
+  
+
   upper.b <- mean.tgt + sd.filter * sd.tgt
   lower.b <- mean.tgt - sd.filter * sd.tgt
   df <- subset(df, df[[tgt.col]] > lower.b &
                  df[[tgt.col]] < upper.b &
-                 df[[tgt.col]] != 0)
+                 df[[tgt.col]] >= lower.limit)
 
   final.obs <- nrow(df)
 
