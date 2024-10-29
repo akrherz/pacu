@@ -1,3 +1,7 @@
+## 2024-10-28
+
+- There was a small conflict with the units package within the function that cleans the yield data. That is solved now. 
+
 ## 2024-10-24
 
 - Version 0.1.38

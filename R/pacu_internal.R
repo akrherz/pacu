@@ -1644,10 +1644,10 @@
   
   
   ## graph parms
-  xlims <- range(doy)
+  xlims <- range(doy, na.rm =  TRUE)
   xlims <- xlims + c(-10, 10)
   
-  ylims <- range(x[[plot.var]])
+  ylims <- range(x[[plot.var]], na.rm = TRUE)
   ylims <- ylims * c(0.9, 1.1)
   
   
