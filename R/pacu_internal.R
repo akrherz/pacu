@@ -632,30 +632,64 @@
 #' @param formula a formula object describing the trend
 #' @param df an sf object containg the variables specified in the formular
 #' @param robust whether to use Cressie's robust estimator
+#' @param test.variogram logical, whether to test if the variogram results in valid predictions
 #' @details This function will fit and return a Mattern variogram given a formula and a sf object
 #' @return returns an sf object
 #' @noRd
 
-.pa_fit_variogram <- function(formula, df, robust = TRUE, fun, verbose = FALSE) {
+.pa_fit_variogram <- function(formula, df, robust = TRUE, fun, test.variogram = TRUE, verbose = FALSE) {
   if(verbose) cat('Fitting variogram \n')
-
+  
   if(fun == 'log') {
     resp.col <- as.character(formula[[2]])
     df[[resp.col]] <- log(df[[resp.col]])
   }
-
-  v1 <- gstat::variogram(formula,  df, cressie = robust)
-
-  f1 <- try(suppressWarnings(gstat::fit.variogram(v1,
-                                                  gstat::vgm(NA, gstat::vgm()$short[2:9], NA, NA),
-                                                  fit.sills = TRUE,
-                                                  fit.ranges = TRUE,
-                                                  fit.kappa = TRUE)) , silent = TRUE)
-
-  if (inherits(f1, 'try-error')) {
-    stop('Failed to fit a variogram using the provided formula and data.')
+  
+  v1 <- gstat::variogram(object = formula,  
+                         df, 
+                         cressie = robust)
+  
+  variogram.list <- lapply(gstat::vgm()$short[2:9],
+                           function(vm){
+                             try(suppressWarnings(
+                               suppressMessages(
+                                 gstat::fit.variogram(v1,
+                                                      gstat::vgm(NA, vm, NA, NA),
+                                                      fit.sills = TRUE,
+                                                      fit.ranges = TRUE,
+                                                      fit.kappa = TRUE))) , silent = TRUE)
+                             
+                           })
+  
+  
+  fail.index <- which(sapply(variogram.list, function(x) inherits(x, 'try-error')))
+  if (length(fail.index) > 0){
+    variogram.list <- variogram.list[-fail.index]
   }
-
+  
+  if(length(variogram.list) < 1)
+    stop('Failed to fit a variogram using the provided formula and data.')
+  
+  variogram.index <- which.min(sapply(variogram.list,function(x) attr(x, 'SSErr')))
+  variogram.list <- variogram.list[order(sapply(variogram.list,function(x) attr(x, 'SSErr')))]
+  f1 <-  variogram.list[[1]]
+  
+  if (test.variogram){
+    test.df.size <- nrow(df) %/% 10
+    test.df <- df[test.df.size, ]
+    for (i in 1:length(variogram.list)){
+      f1 <- variogram.list[[i]]
+      test.pred <- gstat::krige(formula,
+                                df,
+                                test.df,
+                                f1,
+                                debug.level = 0)
+      if (!all(is.na(test.pred$var1.pred))){
+        break
+      }
+    }
+  }
+  
   list(f1, v1)
 }
 
@@ -704,7 +738,11 @@
                   'Cores: ', cores, '\n', sep = '')
 
   if (smooth.method == 'krige'){
-    model <- .pa_fit_variogram(formula, df, robust = TRUE, fun = fun, verbose = verbose)
+    model <- .pa_fit_variogram(formula, df, 
+                               robust = TRUE,
+                               fun = fun,
+                               test.variogram = TRUE, 
+                               verbose = verbose)
     vari <- model[[2]]
     model <- model[[1]]
 
@@ -1209,6 +1247,7 @@
 
   if (method == 'polygons'){
 
+    
     if(nsamples > length(points)) {nsamples <- length(points) - 1}
     smp.points <- sample(1:length(points) - 1, nsamples)
     dists.front <- sf::st_distance(points[smp.points], points[smp.points + 1], by_element = TRUE)
