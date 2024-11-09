@@ -1254,7 +1254,7 @@
 #' @title Get the perpendicular distance between combine passes
 #' @description Get the perpendicular distance between combine passes
 #' @name .pa_perpendicular_distances
-#' @Rdname .pa_perpendicular_distances
+#' @rdname .pa_perpendicular_distances
 #' @param points an sf object
 #' @param nsamples an sf object
 #' @details This function will clean the yield monitor data based on proximity to the edge of the field and global outliers.
