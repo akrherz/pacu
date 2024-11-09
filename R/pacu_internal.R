@@ -1191,9 +1191,7 @@
 #' @param arc arc of a circle to scan when building the concave hull around the field. Defaults to 5.
 #' @param nsamples the number of polygons to be sampled for distances between consecutive and perpendicular points.
 #' This is only relevant when method is 'polygons'.
-#' @param method either 'distances' or 'polygons'. The distance method chooses the farthest points from the center for every arc-circle.
-#' The polygon method will sample points from distances between consecutive and perpendicular points. The created polygons are then checked for overlap with
-#' recorded points. The polygon method can identify holes but it is slower.
+#' @param method either 'concaveman' or 'polygons'.
 #' @details This function will estimate the field boundary by calculating the distance between the
 #' convex hull and each of the point. The closest points to the convex hull for every arc-circle are
 #' selected to define the boundary.
@@ -1202,54 +1200,74 @@
 
 .pa_field_boundary <- function(points,
                                arc = 5,
-                               nsamples = 300,
-                               method = c('concaveman', 'distances', 'polygons'),
+                               nsamples = 500,
+                               method = c('concaveman', 'polygons'),
                                verbose = FALSE) {
 
-  # crt.crs <- sf::st_crs(points)
-  # is.utm <- grepl('UTM zone', crt.crs$wkt)
-  # if(!is.utm){
-  #   stop("points should be in UTM.")
-  # }
 
   method <- match.arg(method)
-
-
-  if (method == 'distances'){
-    vex <- sf::st_convex_hull(sf::st_combine(points))
-    center <- sf::st_centroid(vex)
-    vex <- sf::st_cast(vex, 'LINESTRING')
-
-    angles <- sapply(1:length(points),
-                     function(i) {
-                       pt1 <- sf::st_coordinates(center)
-                       pt2 <- sf::st_coordinates(points[i])
-                       a <- atan2(pt2[1] - pt1[1] , pt2[2] - pt1[2]) * 180 / pi
-                       a
-                     })
-
-    pts.sf <- sf::st_as_sf(points)
-    pts.sf$dists <- sf::st_distance(pts.sf, vex)
-    pts.sf$angle <- angles
-    pts.sf$ac <- cut(pts.sf$angle, breaks = seq(-180, 180, arc))
-
-    pts.sf <- by(pts.sf, pts.sf$ac,
-                 function(df) {
-                   df <- df[order(df$dists), ]
-                   df[1, ]
-                 })
-
-    pts.sf <- do.call(rbind, pts.sf)
-    conc <- sf::st_cast(sf::st_geometry(sf::st_combine(pts.sf)), 'LINESTRING')
-    conc <- sf::st_cast(conc, 'POLYGON')
-
+  
+  if (inherits(points, 'data.frame'))
+    points <- sf::st_geometry(points)
+  
+  crt.crs <- sf::st_crs(points)
+  if(is.na(crt.crs)) {
+    if(verbose)
+      cat('No CRS found. Defaulting to EPSG:4326\n')
+    sf::st_crs(points) <- 'epsg:4326'
   }
+  
+  points <- pa_2utm(points, FALSE) 
+  
 
   if (method == 'polygons'){
+    dists <- .pa_distances(points, nsamples = nsamples, verbose = verbose)
+    df <- dists[[1]]
+    dp <- dists[[2]] / 2
+    vex <- sf::st_convex_hull(sf::st_combine(points))
+    grd <- sf::st_make_grid(vex, cellsize = rep((c(dp, df)), 2))
+    cp <- sf::st_intersects(grd, points)
+    cp <- sapply(cp, function(x) length(x) > 0)
+    grd <- grd[cp]
+    conc <- sf::st_union(sf::st_buffer(grd, max(c(dp, df)), endCapStyle = 'SQUARE', joinStyle = 'BEVEL'))
+    conc <- sf::st_intersection(vex, conc)
+  }
 
-    
-    if(nsamples > length(points)) {nsamples <- length(points) - 1}
-    smp.points <- sample(1:length(points) - 1, nsamples)
+
+  if (method == 'concaveman') {
+    if(!requireNamespace('concaveman', quietly = TRUE)){
+     stop('The concaveman package is required to generate boundaries automatically.',
+          ' You can install it with "install.packages("concaveman")".')
+    }
+
+    pts <-  sf::st_as_sf(sf::st_combine(points))
+    conc <- concaveman::concaveman(pts)
+    conc <- sf::st_zm(conc)
+    conc <- sf::st_geometry(conc)
+  }
+
+  return(conc)
+}
+
+
+#'
+#' @title Get the perpendicular distance between combine passes
+#' @description Get the perpendicular distance between combine passes
+#' @name .pa_perpendicular_distances
+#' @Rdname .pa_perpendicular_distances
+#' @param points an sf object
+#' @param nsamples an sf object
+#' @details This function will clean the yield monitor data based on proximity to the edge of the field and global outliers.
+#' @return returns an sf object
+#'
+#' @noRd
+#'
+.pa_distances <- function(points, 
+                          nsamples = 500,
+                          verbose = TRUE){
+  
+    if(nsamples > length(points)) {nsamples <- length(points) - 1 }
+    smp.points <- sample(1:(length(points) - 1), nsamples)
     dists.front <- sf::st_distance(points[smp.points], points[smp.points + 1], by_element = TRUE)
     close.points <- sf::st_intersects(sf::st_buffer(points[smp.points],  5 * stats::median(dists.front)), points)
     close.points <- lapply(close.points, unlist)
@@ -1266,38 +1284,10 @@
       }
     }
     df <- as.numeric(stats::median(dists.front))
-    dp <- as.numeric(stats::median(perp.distances)) / 2
-
-    vex <- sf::st_convex_hull(sf::st_combine(points))
-    grd <- sf::st_make_grid(vex, cellsize = rep((c(dp, df)), 2))
-
-    cp <- sf::st_intersects(grd, points)
-    cp <- sapply(cp, function(x) length(x) > 0)
-    grd <- grd[cp]
-
-    conc <- sf::st_union(sf::st_buffer(grd, max(c(dp, df)), endCapStyle = 'SQUARE', joinStyle = 'BEVEL'))
-    conc <- sf::st_intersection(vex, conc)
-  }
-
-
-
-  if (method == 'concaveman') {
-    if(!requireNamespace('concaveman', quietly = TRUE)){
-     stop('The concaveman package is required to generate boundaries automatically.',
-          ' You can install it with "install.packages("concaveman")".')
-    }
-
-    pts <-  sf::st_as_sf(sf::st_combine(points))
-    conc <- concaveman::concaveman(pts)
-    conc <- sf::st_zm(conc)
-    conc <- sf::st_geometry(conc)
-  }
-
-
-  return(conc)
+    dp <- as.numeric(stats::median(perp.distances))
+    
+    return(list(distance = df, width = dp))
 }
-
-
 
 #'
 #' @title Clean yield monitor data

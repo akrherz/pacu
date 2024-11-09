@@ -1,3 +1,9 @@
+## 2024-11-08
+
+- Also made some improvements to the method "polygons" of .pa_field_boundary(). This method works better than the concavemen method for fields with holes. It takes a lot longer though.
+
+- I encountered a situation in which the best variogram by the "SSErr" criteria would return invalid predictions. The .pa_fit_varigoram() now has the option to check that the predictions returned using that variogram are valid. This option is set to TRUE by default.
+
 ## 2024-10-28
 
 - There was a small conflict with the units package within the function that cleans the yield data. That is solved now. 
