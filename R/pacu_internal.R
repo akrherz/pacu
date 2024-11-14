@@ -1201,6 +1201,7 @@
 .pa_field_boundary <- function(points,
                                arc = 5,
                                nsamples = 500,
+                               buffer.multiplier = 1,
                                method = c('concaveman', 'polygons'),
                                verbose = FALSE) {
 
@@ -1225,11 +1226,11 @@
     df <- dists[[1]]
     dp <- dists[[2]] / 2
     vex <- sf::st_convex_hull(sf::st_combine(points))
-    grd <- sf::st_make_grid(vex, cellsize = rep((c(dp, df)), 2))
+    grd <- sf::st_make_grid(vex, cellsize = rep((c( buffer.multiplier * dp, df)), 2))
     cp <- sf::st_intersects(grd, points)
     cp <- sapply(cp, function(x) length(x) > 0)
     grd <- grd[cp]
-    conc <- sf::st_union(sf::st_buffer(grd, max(c(dp, df)), endCapStyle = 'SQUARE', joinStyle = 'BEVEL'))
+    conc <- sf::st_union(sf::st_buffer(grd, max(c(buffer.multiplier * dp, df)), endCapStyle = 'SQUARE', joinStyle = 'BEVEL'))
     conc <- sf::st_intersection(vex, conc)
   }
 
