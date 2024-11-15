@@ -251,7 +251,11 @@ pa_yield <- function(input,
         stop('One or more of the explanatory variables are not present in the grid.')
     }
 
-
+    
+    if (!is.null(grid) && !is.null(boundary)) {
+      grid <- sf::st_intersection(grid, boundary)
+    }
+    
   if (algorithm == 'simple') {
 
     if(pb) {

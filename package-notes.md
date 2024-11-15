@@ -1,3 +1,7 @@
+## 2024-11-15
+
+- Found a small inconsistency in pa_yield(). Now, when both grid and boundary are provided, the function will use the boundary to crop the grid.
+
 ## 2024-11-08
 
 - Also made some improvements to the method "polygons" of .pa_field_boundary(). This method works better than the concavemen method for fields with holes. It takes a lot longer though.
