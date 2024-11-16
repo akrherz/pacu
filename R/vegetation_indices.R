@@ -22,6 +22,8 @@
 #'   vegetation index. Can be one of 10m, 20m, 30m
 #' @param img.formats image formats to search for in the
 #'   zipped file
+#'   @param downscale.to the resolution in meters to downscale the 
+#'   resolution of the vegetation index raster layer
 #' @param verbose whether to display information on the
 #'   progress of operations
 #' @details This is script that unzips the Sentinel 2 zipped
@@ -64,6 +66,7 @@ pa_compute_vi <- function(satellite.images,
                           aoi = NULL,
                           check.clouds = FALSE,
                           buffer.clouds = 100,
+                          downscale.to = NULL,
                           pixel.res = c('default', '10m', '20m', '60m'),
                           img.formats = c('jp2', 'tif'),
                           verbose = TRUE){
@@ -179,13 +182,28 @@ pa_compute_vi <- function(satellite.images,
      
   }
 
-
+  
   sorted <- sapply(res, function(x) stars::st_get_dimension_values(x, 'time'))
   sorted <- order(sorted)
   res <- res[sorted]
-
+  
   res <- do.call(c, c(res, along = 'time'))
+  
+  if (!is.null(downscale.to)){
+    crt.crs <- sf::st_crs(res)
+    is.utm <- grepl('UTM zone', crt.crs$wkt)
+    if (!is.utm)
+      stop('When downscale.to is not NULL, CRS should be UTM')
+    
+    new.res <- stars::st_as_stars(sf::st_bbox(res), 
+                                  dx = downscale.to, 
+                                  dy = downscale.to)
+    res <- stars::st_warp(res, new.res)
+  }
+  
   attr(res, 'vegetation.index') <- vi
   class(res) <- c('veg.index', class(res))
+  
+  
   return(res)
 }

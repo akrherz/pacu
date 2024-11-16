@@ -11,6 +11,7 @@ pa_compute_vi(
   aoi = NULL,
   check.clouds = FALSE,
   buffer.clouds = 100,
+  downscale.to = NULL,
   pixel.res = c("default", "10m", "20m", "60m"),
   img.formats = c("jp2", "tif"),
   verbose = TRUE
@@ -39,7 +40,9 @@ analysis.}
 vegetation index. Can be one of 10m, 20m, 30m}
 
 \item{img.formats}{image formats to search for in the
-zipped file}
+zipped file
+@param downscale.to the resolution in meters for to downscale the 
+resolution of the raster data}
 
 \item{verbose}{whether to display information on the
 progress of operations}

@@ -2,6 +2,8 @@
 
 - Found a small inconsistency in pa_yield(). Now, when both grid and boundary are provided, the function will use the boundary to crop the grid.
 
+- Added an option in "pa_compute_vi()" to downscale the final raster to a different resolution. This helps avoiding NAs when aggregating the raster data to small polygons.
+
 ## 2024-11-08
 
 - Also made some improvements to the method "polygons" of .pa_field_boundary(). This method works better than the concavemen method for fields with holes. It takes a lot longer though.

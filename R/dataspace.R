@@ -322,6 +322,7 @@ pa_download_dataspace <- function(x,
     ## Checking for files that have been downloaded previously
     if (file.exists(outpath)) {
       cat('File ', basename(outpath), ' has been downloaded. Moving to next.\n')
+      sccs <- c(sccs, outpath)
       next
     }
 
