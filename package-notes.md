@@ -1,3 +1,41 @@
+## 2024-11-17 (FEM)
+
+Reporting some issues:
+
+- I tried to build the vignettes from github and I encountered the following error:
+
+   Quitting from lines 90-98 [summarizing-weather-data] (pacu_weather.Rmd)
+   Error: processing vignette 'pacu_weather.Rmd' failed with diagnostics:
+   '==' only defined for equally-sized data frames
+   --- failed re-building ‘pacu_weather.Rmd’
+   
+- I encountered an error when running this code:
+
+### This is a file downloaded from Web Soil Survey
+aoi <- st_read("wss_aoi_2024-11-17_13-28-40/spatial/soilmu_a_aoi.shp")
+
+### This does not work.
+mks.vi <- pa_get_vi_stats(aoi = aoi, 
+                          start.date = "2021-01-01",
+                          end.date = "2021-12-31",
+                          vegetation.index = "ndvi")
+
+I suspect that the issue might have something to do with some assumption
+about how the AOI is built. The example in the help file works fine.
+
+Running 'summary.veg.index' on the object like the one above results in
+
+Error in summary.veg.index(ndvi) : 
+  argument "by" is missing, with no default
+  
+I think 'summary.veg.index' should return something even if 'by' is missing.
+
+Something that is somewhat not intuitive is that for an object of class
+('veg.index', 'stars'), 'pa_plot' works, but 'plot' returns an error. We
+could define a function 'plot.veg.index' that would return a friendly
+message saying 'please use pa_plot'. An alternative is that 'plot.veg.index'
+just points to 'pa_plot'.
+
 ## 2024-11-15
 
 - Found a small inconsistency in pa_yield(). Now, when both grid and boundary are provided, the function will use the boundary to crop the grid.

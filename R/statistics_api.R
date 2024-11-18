@@ -59,6 +59,24 @@ pa_get_vi_stats<- function(aoi,
   if(sf::st_crs(aoi)$input != 'EPSG:4326'){
     aoi <- sf::st_transform(aoi, 4326)
   }
+  
+  geom.types <- sf::st_geometry_type(aoi)
+  if(any(geom.types %in% c('MULTIPOLYGON'))){
+    aoi <- sf::st_cast(aoi, 'MULTIPOLYGON')
+    aoi <- sf::st_cast(aoi, 'POLYGON')
+  }
+  
+  ## checking for empty polygons
+  is.empty <- sf::st_is_empty(aoi)
+  if (all(is.empty)){
+    ('aoi only contains empty geometries')
+  }
+  
+  if(any(is.empty)){
+    empty.indices <- which(is.empty)
+    warning('Empty polygon(s) will be skipped: ', paste(empty.indices, collapse = ', '))
+    aoi <- aoi[-empty.indices, ]
+  }
 
 
 

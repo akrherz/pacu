@@ -217,12 +217,27 @@
   }else {
     type <- 'MultiPolygon'
   }
+  
+ 
 
   geo_json_geometry <- list(type =  jsonlite::unbox(type),
                             coordinates = list())
 
   for(i in 1:nrow(aoi)){
-    bbox <-  sf::st_cast(sf::st_geometry(aoi[i, ]), 'POINT')
+    poli <- aoi[i, ]
+    poli <- sf::st_geometry(poli)
+    outside <- sf::st_multipolygon(lapply(poli, function(x) x[1]))
+    inside <- try(sf::st_multipolygon(rev(lapply(poli, function(x) x[2]))),
+                  silent = TRUE)
+    if (inherits(inside, 'try-error'))
+      inside <- NULL
+    
+    poli <- c(outside) ## right now we only use the outside polygon
+                        ## this is not ideal. I will fix this later.
+    poli <- sf::st_geometry(poli)
+    st_crs(poli) <- sf::st_crs(aoi)
+    
+    bbox <-  sf::st_cast(sf::st_geometry(poli), 'POINT')
     c1 <- sf::st_coordinates(bbox[1])
     epsg.code <- .pa_coord2utm(unname(c1[1]), unname(c1[2]))
     bbox <- sf::st_transform(bbox, epsg.code)

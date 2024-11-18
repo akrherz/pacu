@@ -41,8 +41,8 @@ vegetation index. Can be one of 10m, 20m, 30m}
 
 \item{img.formats}{image formats to search for in the
 zipped file
-@param downscale.to the resolution in meters for to downscale the 
-resolution of the raster data}
+@param downscale.to the resolution in meters to downscale the 
+resolution of the vegetation index raster layer}
 
 \item{verbose}{whether to display information on the
 progress of operations}
