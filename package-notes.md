@@ -1,3 +1,9 @@
+## 2021-11-19
+
+- Version 0.1.40
+
+- the pa_get_vi_stats() function would return an error before if the supplied aoi had a hole within the area. for now, this is fixed by discarding the inner polygon that represents the hole and only supplying the outside polygon to the API. I want to find a better solution for this later. 
+
 ## 2024-11-17 (FEM)
 
 Reporting some issues:

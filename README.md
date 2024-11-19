@@ -32,6 +32,6 @@ Imported packages: stars, XML, gstat, units, sf, apsimx, tmap, httr, jsonlite
 
 Suggested packages: spData, knitr, mgcv, concaveman, rmarkdown, ggplot2, patchwork, nasapower, testthat
 
-## Manuscript preprint
+## Manuscript
 
-You can find a preprint of the manuscript describing *pacu* [here](https://www.ssrn.com/abstract=4946676)
+You can find the manuscript describing *pacu* [here](https://authors.elsevier.com/sd/article/S2352-7110(24)00341-8)

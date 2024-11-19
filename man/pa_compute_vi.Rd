@@ -36,13 +36,14 @@ interfere with the index calculation. This is useful to
 eliminate the effect of cloud shading from the
 analysis.}
 
+\item{downscale.to}{the resolution in meters to downscale the 
+resolution of the vegetation index raster layer}
+
 \item{pixel.res}{pixel resolution used to compute the
 vegetation index. Can be one of 10m, 20m, 30m}
 
 \item{img.formats}{image formats to search for in the
-zipped file
-@param downscale.to the resolution in meters to downscale the 
-resolution of the vegetation index raster layer}
+zipped file}
 
 \item{verbose}{whether to display information on the
 progress of operations}

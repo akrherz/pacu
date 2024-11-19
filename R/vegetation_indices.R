@@ -22,7 +22,7 @@
 #'   vegetation index. Can be one of 10m, 20m, 30m
 #' @param img.formats image formats to search for in the
 #'   zipped file
-#'   @param downscale.to the resolution in meters to downscale the 
+#' @param downscale.to the resolution in meters to downscale the 
 #'   resolution of the vegetation index raster layer
 #' @param verbose whether to display information on the
 #'   progress of operations
