@@ -1,3 +1,11 @@
+## 2021-11-20
+
+- Version 0.1.41
+
+- the pa_compute_vi() function did not handle starts_proxy objects well before. I have added extra steps to handle stars_proxy objects. Now, the function can handle entire satellite images.
+
+- added a step in summary.veg.index() to speed up the processing
+
 ## 2021-11-19
 
 - Version 0.1.40

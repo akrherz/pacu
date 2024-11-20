@@ -157,12 +157,14 @@ pa_compute_vi <- function(satellite.images,
     if (length(unique(resolutions)) > 1) {
       i.greater <- which.max(resolutions)
       for(i in (1:length(rs))[-i.greater]){
-        rs[[i]] <- stars::st_warp(rs[[i]], rs[[i.greater]])
+        rs[[i]] <- stars::st_warp(stars::st_as_stars(rs[[i]]),
+                                  stars::st_as_stars(rs[[i.greater]]))
       }
     }
 
     op <- iops[[vi]]
     img <- eval(op, list(b = rs))
+    img <- stars::st_as_stars(img)
 
     metadata.file <- .pa_select_s2_files(sat.img, which = 'metadata')
     metadata.file <- grep(metadata.file, list.files(temporary.dir), value = TRUE)

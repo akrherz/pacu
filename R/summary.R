@@ -79,6 +79,24 @@ summary.veg.index <- function(object,
                               by,
                               fun){
 
+  crs.x <- sf::st_crs(object)
+  crs.y <- sf::st_crs(by)
+  
+  if(!(crs.x == crs.y)){
+    warning('CRS of "by" is different from the CRS of "object".',
+            'Reprojecting "by".')
+    by <- sf::st_transform(by, crs.x)
+  }
+  
+  bbox.x <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(object)))
+  bbox.y <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(by)))
+  overlap <- as.logical(unlist(sf::st_intersects(bbox.x, bbox.y)))
+  
+  if(!overlap){
+    stop('object and by do not overlap.')
+  }
+  
+  object <- sf::st_crop(object, bbox.y)
   x <-  stats::aggregate(x = object, by = by, FUN = fun, ...)
   x <-  sf::st_join(x, by, join = sf::st_equals, left = FALSE)
   class(x) <- c('veg.index', class(x))
