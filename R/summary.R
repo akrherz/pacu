@@ -79,6 +79,7 @@ summary.veg.index <- function(object,
                               by,
                               fun){
 
+  vegetation.index <- attr(object, 'vegetation.index')
   crs.x <- sf::st_crs(object)
   crs.y <- sf::st_crs(by)
   
@@ -101,7 +102,7 @@ summary.veg.index <- function(object,
   x <-  sf::st_join(x, by, join = sf::st_equals, left = FALSE)
   class(x) <- c('veg.index', class(x))
 
-  attr(x, 'vegetation.index') <- attr(object, 'vegetation.index')
+  attr(x, 'vegetation.index') <- vegetation.index
 
   return(x)
 
