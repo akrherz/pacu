@@ -321,7 +321,10 @@ pa_download_dataspace <- function(x,
 
     ## Checking for files that have been downloaded previously
     if (file.exists(outpath)) {
-      cat('File ', basename(outpath), ' has been downloaded. Moving to next.\n')
+      warning('File ', basename(outpath), ' has been downloaded. Moving to next.')
+      if( verbose == 1){
+        utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1) 
+      }
       sccs <- c(sccs, outpath)
       next
     }

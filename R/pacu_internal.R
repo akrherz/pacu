@@ -64,7 +64,9 @@
 
   if (any(grepl('\\.jp2', cloud_mask))) {
     clouds <- stars::read_stars(file.path(temporary_dir, cloud_mask))
-    clouds <- sf::st_union(sf::st_geometry(sf::st_as_sf(clouds[clouds > 0, 1] + clouds[clouds > 0, 2])))
+    clouds <-  split(clouds, 'band')
+    clouds <- clouds[1] + clouds[2]
+    clouds[clouds > 0] <- 1
     res <- clouds
   }
 

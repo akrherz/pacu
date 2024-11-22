@@ -115,7 +115,7 @@ pa_compute_vi <- function(satellite.images,
   for (sat.img in satellite.images) {
     if (verbose > 1) {
       cat('processing ', sat.img, '\n')
-    }
+      }
     
     if(!is.null(aoi) && check.clouds == TRUE) {
       clouds <- .pa_get_cloud_polygon(sat.img)
@@ -123,10 +123,18 @@ pa_compute_vi <- function(satellite.images,
       if(!is.null(clouds)){
         boundary <- sf::st_as_sfc(sf::st_bbox(sf::st_transform(aoi, sf::st_crs(clouds))))
         cloud.buffer <- sf::st_buffer(boundary, buffer.clouds)
-        check.overlap <- sf::st_intersects(cloud.buffer, clouds, sparse = FALSE)
+        clouds <- sf::st_crop(clouds, cloud.buffer)
+        clouds <- as.data.frame(clouds)
+        clouds <- stats::na.omit(clouds)
+        check.overlap <- FALSE
+        if(any(clouds[[3]] > 0)){check.overlap <- TRUE}
+        
 
-        if(any(check.overlap)) {
-          warning('Clouds detected over the AOI. Skipping to the next image.')
+        if(check.overlap) {
+          warning('Clouds detected over the AOI. Skipping ', basename(sat.img))
+          if( verbose == 1){
+            utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1) 
+          }
           next
         }
 

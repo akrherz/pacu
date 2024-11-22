@@ -1,3 +1,9 @@
+## 2021-11-22
+
+- Version 0.1.42
+
+- the function that checks for clouds now uses a raster format, instead of polygons. this sped up the processing a lot.
+
 ## 2021-11-20
 
 - Version 0.1.41
