@@ -1,10 +1,16 @@
-## 2021-11-22
+## 2024-12-09
+
+- Version 0.1.43
+
+- the pa_download_dataspace() and pa_compute_vi() functions only issue warnings when verbose is TRUE. This helps when compiling reports.
+
+## 2024-11-22
 
 - Version 0.1.42
 
 - the function that checks for clouds now uses a raster format, instead of polygons. this sped up the processing a lot.
 
-## 2021-11-20
+## 2024-11-20
 
 - Version 0.1.41
 
@@ -12,7 +18,7 @@
 
 - added a step in summary.veg.index() to speed up the processing
 
-## 2021-11-19
+## 2024-11-19
 
 - Version 0.1.40
 

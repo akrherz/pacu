@@ -131,8 +131,8 @@ pa_compute_vi <- function(satellite.images,
         
 
         if(check.overlap) {
-          warning('Clouds detected over the AOI. Skipping ', basename(sat.img))
           if( verbose == 1){
+          warning('Clouds detected over the AOI. Skipping ', basename(sat.img))
             utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1) 
           }
           next
