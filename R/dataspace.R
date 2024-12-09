@@ -279,6 +279,9 @@ pa_download_dataspace <- function(x,
   ## Checking for credentials
   if("" %in% c(Sys.getenv('DATASPACE_USERNAME'), Sys.getenv('DATASPACE_PASSWORD')))
     stop('Dataspace password or username not registered in R envinronemt. Use initialize_dataspace to register credentials to R environment.')
+  
+  if(!inherits(aoi, 'sf'))
+    stop('aoi must be an sf object')
 
   # Checking dependencies
   req.namespaces <- c('jsonlite', 'httr')

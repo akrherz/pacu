@@ -4,6 +4,8 @@
 
 - the pa_download_dataspace() and pa_compute_vi() functions only issue warnings when verbose is TRUE. This helps when compiling reports.
 
+- check the "aoi" is an sf object in pa_download_dataspace
+
 ## 2024-11-22
 
 - Version 0.1.42
