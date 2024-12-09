@@ -34,4 +34,4 @@ Suggested packages: spData, knitr, mgcv, concaveman, rmarkdown, ggplot2, patchwo
 
 ## Manuscript
 
-You can find the manuscript describing *pacu* [here](https://authors.elsevier.com/sd/article/S2352-7110(24)00341-8)
+You can find the manuscript describing *pacu* [here](https://doi.org/10.1016/j.softx.2024.101971)
