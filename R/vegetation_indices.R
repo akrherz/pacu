@@ -43,7 +43,7 @@
 #' @author Caio dos Santos and Fernando Miguez
 #' @export
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' extd.dir <- system.file("extdata", package = "pacu")
 #' ## List of zipped Sentinel files in a directory
 #' s2a.files <- list.files(extd.dir, '\\.zip', full.names = TRUE)

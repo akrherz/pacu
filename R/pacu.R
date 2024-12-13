@@ -2,8 +2,9 @@
 #'
 #' @title Setting some options for the package
 #' @name pacu_options
-#' @description Set the path to the APSIM-X executable, examples and warning suppression.
-#' @param exe.path path to apsim executable. White spaces are not allowed.
+#' @description Set settings regarding messages and default behaviors of the package
+#' @param suppress.warnings whether to suppress warning messages
+#' @param suppress.messages whether to suppress  messages
 #' @return as a side effect it modifies the \sQuote{pacu.options} environment.
 #' @export
 #' @examples
@@ -13,9 +14,11 @@
 #' pacu.options$exe.path
 #' }
 
-pacu_options <- function(exe.path = NA){
+pacu_options <- function(suppress.warnings = FALSE, 
+                         suppress.messages = FALSE){
 
-  assign('exe.path', exe.path, pacu.options)
+  assign('suppress.warnings', suppress.warnings, pacu.options)
+  assign('suppress.messages', suppress.messages, pacu.options)
 }
 
 #' Environment which stores PACU options
@@ -29,15 +32,16 @@ pacu_options <- function(exe.path = NA){
 #' @return This is an environment, not a function, so nothing is returned.
 #' @export
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' names(pacu.options)
-#' pacu_options(exe.path = "some-new-path-to-executable")
-#' pacu.options$exe.path
+#' ## to suppress messages
+#' pacu_options(suppress.messages = TRUE)
 #' }
 #'
 
 pacu.options <- new.env(parent = emptyenv())
-assign('exe.path', NA, pacu.options)
+assign('suppress.warnings', FALSE, pacu.options)
+assign('suppress.messages', FALSE, pacu.options)
 assign('.run.local.tests', TRUE, pacu.options)
 assign('.run.experimental.tests', FALSE, pacu.options)
 

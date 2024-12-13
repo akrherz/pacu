@@ -118,11 +118,12 @@
 #' an area of interest
 #' @param satellite_images list of file paths to be cropped to aoi
 #' @param aoi sf object to which the file raster files will be cropped
-#' @param img_formats image formats to search for in the zipped file
+#' @param overwrite whether to overwrite the original file
 #' @noRd
 
 .pa_crop_s2_to_aoi <- function(satellite_images,
-                               aoi){
+                               aoi,
+                               overwrite = TRUE){
 
   for (sat_img in satellite_images) {
 
@@ -131,47 +132,59 @@
     bname <- basename(sat_img)
     bname <- strsplit(bname, '\\.')[[1]][1]
     temporary_dir <- file.path(temporary_dir, bname)
+    reduced_dir <- file.path(temporary_dir, 'reduced/IMG_DATA')
+    
     dir.create(temporary_dir, showWarnings = FALSE, recursive = TRUE)
     utils::unzip(sat_img[[1]], overwrite = TRUE, exdir = temporary_dir, junkpaths = TRUE)
     cmi <- grep('B00', image_indices)
     cloud_mask <- image_indices[cmi]
     image_indices <- image_indices[-cmi]
-    dir.create('./reduced/IMG_DATA', recursive = TRUE, showWarnings = FALSE)
+    dir.create(reduced_dir, recursive = TRUE, showWarnings = FALSE)
     for (band in image_indices) {
       band_img <- stars::read_stars(file.path(temporary_dir, band))
       boundary <- sf::st_geometry(sf::st_transform(aoi, sf::st_crs(band_img)))
       band_img <- sf::st_crop(band_img, boundary, mask = TRUE)
       band <- gsub('\\.jp2', '\\.tif', band)
 
-      img.out <- file.path('./reduced/IMG_DATA/', band)
+      img.out <- file.path(reduced_dir, band)
       stars::write_stars(band_img,
                          img.out)
     }
 
     if (length(cloud_mask) > 0){
       file.copy(file.path(temporary_dir, cloud_mask),
-                file.path('./reduced/IMG_DATA', cloud_mask))
+                file.path(reduced_dir, cloud_mask))
     }
 
     metadata <- .pa_select_s2_files(fpath = sat_img, which = 'metadata')
     if (length(metadata) > 0){
       file.copy(file.path(temporary_dir, metadata),
-                file.path('./reduced/IMG_DATA', metadata))
+                file.path(reduced_dir, metadata))
     }
-
-
-    files_to_zip <- list.files('./reduced', recursive = TRUE)
-    unlink(sat_img[[1]])
-    utils::zip(sat_img[[1]],
-               files = file.path('./reduced',
+    
+    files_to_zip <- list.files(reduced_dir, recursive = TRUE)
+    if(overwrite){
+      wrt.path <- sat_img[[1]]
+      unlink(wrt.path)
+    }else{
+      bname <- basename(sat_img[[1]])
+      f <- strsplit(bname, '\\.')[[1]][1]
+      extension <- strsplit(bname, '\\.')[[1]][2]
+      wrt.path <- file.path(dirname(sat_img[[1]]), 
+                              paste0(f, '-reduced'))
+    }
+    utils::zip(wrt.path,
+               files = file.path(reduced_dir,
                                  files_to_zip),
                flags = '-q') ## might need to adjust this to different OS
+    
     ## Deleting temporary folders
     folders_to_delete <- dir(temporary_dir, pattern = '[.]SAFE')
     unlink(paste0(normalizePath(temporary_dir), "/", folders_to_delete),
            recursive = TRUE)
-    unlink('./reduced',
+    unlink(reduced_dir,
            recursive = TRUE)
+    
   }
 }
 
@@ -311,6 +324,9 @@
 .pa_select_s2_files <- function(fpath,
                                 which = c('all', 'images', 'metadata')) {
 
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
   which <- match.arg(which)
   imgList <- utils::unzip(fpath, list = TRUE)
   bname <- basename(fpath)
@@ -321,7 +337,8 @@
   mtd <- grep('MTD_MSI', imgList[[1]], value = TRUE)
 
   if (length(mtd) < 1) {
-    warning('No metadata found for ', basename(fpath), immediate. = TRUE)
+    if(!s.wrns)
+      warning('No metadata found for ', basename(fpath), immediate. = TRUE)
   } else {mtd <- mtd[[1]]}
 
   if (grepl('^S2A|^S2B', x = bname)){
@@ -472,6 +489,8 @@
 #' @noRd
 
 .pa_areal_weighted_average <- function(x, y, var, fn, sum = FALSE, cores = 1L){
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
   pol.intersections <- fn(y, x)
   int.ps <- (1:length(y))[lengths(pol.intersections) >= 1]
   y <- sf::st_geometry(y)
@@ -484,8 +503,9 @@
     cores.avlb <- parallel::detectCores(logical = FALSE)
     ncores <- cores
     if (cores > cores.avlb){
-      warning('Argument "cores" is greater than the number of available physical cores on the machine. Setting cores argument to ', cores.avlb,
-              immediate. = TRUE)
+      if(!s.wrns)
+        warning('Argument "cores" is greater than the number of available physical cores on the machine. Setting cores argument to ', cores.avlb,
+                immediate. = TRUE)
       ncores <- cores.avlb
     }
     cl <- parallel::makeCluster(ncores)
@@ -549,6 +569,10 @@
 #' @noRd
 
 .pa_solve_vehicle_overlap <- function(polygons, cores = 1L, verbose = FALSE) {
+  
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
   pol.intersections <- sf::st_intersects(polygons, remove_self = FALSE)
   number.of.conflicts <- sum(as.numeric(lengths(pol.intersections)  > 1))
 
@@ -563,8 +587,9 @@
       cores.avlb <- parallel::detectCores(logical = FALSE)
       ncores <- cores
       if (cores > cores.avlb){
-        warning('Argument "cores" is greater than the number of available physical cores on the machine. Setting cores argument to ', cores.avlb,
-                immediate. = TRUE)
+        if (!s.wrns)
+          warning('Argument "cores" is greater than the number of available physical cores on the machine. Setting cores argument to ', cores.avlb,
+                  immediate. = TRUE)
         ncores <- cores.avlb
       }
       cl <- parallel::makeCluster(ncores)
@@ -916,13 +941,19 @@
 #' @noRd
 .pa_get_variable_columns <- function(df, var, verbose){
 
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  verbose <- min(!s.wrns, verbose)
+  
   tgt.col <- .pa_get_variable_names(var)
   tgt.col <- factor(tgt.col, levels = tgt.col, ordered = TRUE)
 
   tgt.index <- which(tolower(names(df)) %in% tgt.col)
   if(length(tgt.index) < 1) {
-    if (verbose) warning('Unable to find the column for ', var, '\n',
-                         immediate. = TRUE)
+    if (verbose)
+        warning('Unable to find the column for ', var, '\n',
+                immediate. = TRUE)
+    
     return(NULL)
   }
   tgt.names <- names(df)[tgt.index]
@@ -979,6 +1010,9 @@
                                              )){
 
 
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
   if (!inherits(x, c('character', 'POSIXlt', 'POSIXt'))) {
     stop('x must be either a character or a datetime object.')
   }
@@ -995,7 +1029,8 @@
   interval <- as.numeric(interval)
 
   if (length(interval[interval < 0]) > 0) {
-    warning('Negative interval values detected when estimating interval from time. Please check the time column.')
+    if (!s.wrns)
+      warning('Negative interval values detected when estimating interval from time. Please check the time column.')
 
   }
 
@@ -1071,6 +1106,9 @@
 
 .pa_guess_units <- function(vec, var, comparison.vector = NULL, verbose = FALSE) {
 
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
   vs <- summary(vec)
   mu <- 'unknown'
 
@@ -1131,8 +1169,9 @@
   }
 
   if(mu == 'unknown') {stop('unable to dermine the units of ', var, call. = FALSE)}
-
-  message('Guessing units of ', var, ' to be ', mu)
+  
+  if (!s.msgs)
+    message('Guessing units of ', var, ' to be ', mu)
 
   units::set_units(vec, mu, mode = 'standard')
 }

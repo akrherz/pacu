@@ -21,6 +21,11 @@ vignette: >
 
 4. [Frequently asked questions](pacu_faq.html)
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacu)
+```
+
 # FAQ
 
 1.  The *pa_yield()* function expects an *sf* object but my data is in a ".csv" format. How should I proceed?
@@ -40,3 +45,13 @@ vignette: >
     class(dat) ## sf and data.frame
     
     ```
+
+1. How do I silence warnings and messages within the package?
+
+    To silence warnings and messages, you can use the pacu_options() function.
+    ```{r}
+    pacu_options(suppress.warnings = TRUE,
+                 suppress.messages = TRUE)
+    ```
+    
+    

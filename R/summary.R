@@ -5,6 +5,7 @@
 #' @param object object to be summarized
 #' @param ... additional arguments. None used currently.
 #' @exportS3Method base::summary
+#' @return when object is of class dslist, no return value. Called for side effects.
 #' @export
 summary.dslist <- function(object, ...){
 
@@ -30,6 +31,7 @@ summary.dslist <- function(object, ...){
 #' an overall summary for the field
 #' @rdname pa_summary
 #' @exportS3Method base::summary
+#' @return when object is of class yield, returns an object of class data.frame
 #' @export
 summary.yield <- function(object,
                           ...,
@@ -72,6 +74,7 @@ summary.yield <- function(object,
 #'   vegetation index data. For example, mean, median, max,
 #'   min.
 #' @rdname pa_summary
+#' @return when object is of class veg.index, returns an object of class stars
 #' @exportS3Method base::summary
 #' @export
 summary.veg.index <- function(object,

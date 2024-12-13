@@ -32,6 +32,9 @@ observations.}
 
 \item{verbose}{whether to print operation details}
 }
+\value{
+an sf object
+}
 \description{
 Adjust the effective area of each
   observation based on vehicular polygon overlap

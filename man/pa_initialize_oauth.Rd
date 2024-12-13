@@ -11,6 +11,9 @@ pa_initialize_oauth(client_id, client_secret)
 
 \item{client_secret}{client secret used to authenticate the HTTP request}
 }
+\value{
+No return value, called for side effects
+}
 \description{
 Register the Oauth2.0 credentials to the R environment
 }
@@ -22,7 +25,7 @@ You can register at \url{https://dataspace.copernicus.eu/news}. Please see this 
 \url{https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html}.
 }
 \examples{
-\dontrun{
+\donttest{
 pa_initialize_oauth('my-client-id', 'my-client-secret')
 }
 

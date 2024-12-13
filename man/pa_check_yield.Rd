@@ -15,6 +15,9 @@ a yield monitor}
 check the data. Different algorithms require different
 information to be present in the input data set.}
 }
+\value{
+No return value, called for side effects
+}
 \description{
 This function will check for red flags so
   the user can know of potential problems before using
@@ -27,11 +30,12 @@ This function will check the input yield data
   of potential problems.
 }
 \examples{
-\dontrun{
+\donttest{
 extd.dir <- system.file("extdata", package = "pacu")
 raw.yield <- sf::read_sf(file.path(extd.dir, '2012-basswood.shp'),
                          quiet = TRUE)
-pa_check_yield(raw.yield)
+chk <- pa_check_yield(raw.yield)
+chk
 }
 
 }

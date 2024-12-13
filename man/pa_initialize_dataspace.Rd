@@ -5,7 +5,7 @@
 \title{Register the Data Space credentials to the R
   environment}
 \usage{
-pa_initialize_dataspace(username, password)
+pa_initialize_dataspace(username, password, verbose = TRUE)
 }
 \arguments{
 \item{username}{username used to authenticate the HTTP
@@ -13,6 +13,11 @@ request}
 
 \item{password}{password used to authenticate the HTTP
 request}
+
+\item{verbose}{whether to print information about this operation}
+}
+\value{
+No return value, called for side effects
 }
 \description{
 Register the Data Space credentials to the R
@@ -28,7 +33,7 @@ Register the Data Space credentials to the R
   register at \url{https://dataspace.copernicus.eu/}.
 }
 \examples{
-\dontrun{
+\donttest{
 pa_initialize_dataspace('my-username', 'my-password')
 }
 

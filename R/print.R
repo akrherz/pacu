@@ -6,6 +6,7 @@
 #' @rdname pa_print
 #' @param x object to be printed
 #' @param ... additional arguments. None used currently.
+#' @return No return value, called for side effects
 #' @export
 print.yield <- function(x, ...){
 
@@ -54,4 +55,86 @@ print.dslist <- function(x, ...){
 
 
 
+}
+
+
+#' @rdname pa_print
+#' @export
+print.check.yield <- function(x, ...){
+  column <-  NULL
+  
+  cat('Field information\n')
+  .pa_print_table(x$field.info,
+                  headers = FALSE,
+                  width = c(NA, 5))
+  if (is.na(x$field.info$values[match('CRS',x$field.info$category)]))
+    message('The CRS is missing from the input object. The pa_yield function will default to EPSG:4326\n')
+  
+  ## simple
+  if (!any(is.na(x$check.simple))){
+    
+    cat('\n\nAlgorithm: Simple', fill = TRUE)
+    cat('Checking column names and units\n', sep = '')
+    .pa_print_table(x$check.simple$data)
+    cat('Checking data values\n')
+    .pa_print_table(x$check.simple$values)
+    
+    if (any(x$check.simple$values$extreme > 0))
+      warning('Extreme values identified. These these are values outside of the range of the mean \u00B1 3sd',
+              immediate. = TRUE)
+    
+    not.found <- subset(x$check.simple$data, column == '-')[['variable']]
+    
+    
+    if (any(c('yield', 'moisture') %in% not.found))
+      warning('Columns yield and moisture are needed for the simple algorithm',
+              immediate. = TRUE)
+    
+    if ('interval' %in% not.found)
+      warning('Column interval is needed for the simple algorithm',
+              ' when using the lag.adjust argument',
+              immediate. = TRUE)
   }
+    
+ ## ritas 
+  if (!any(is.na(x$check.ritas))){
+    
+    cat('\n\nAlgorithm: RITAS', fill = TRUE)
+    cat('Checking column names and units\n', sep = '')
+    .pa_print_table(x$check.ritas$data)
+    cat('Checking data values\n')
+    .pa_print_table(x$check.ritas$values)
+    
+    not.found <- subset(x$check.ritas$data, column == '-')[['variable']]
+    
+    if (any(x$check.ritas$values$extreme > 0))
+      warning('Extreme values identified. These these are values outside of the range of the mean \u00B1 3sd',
+              immediate. = TRUE)
+
+
+    not.found <- subset(x$check.ritas$data, column == '-')[['variable']]
+
+
+    if (('mass' %in% not.found && any(c('interval', 'flow') %in% not.found)))
+      warning('Either mass or, simutaneously, interval and flow are required for the ritas algorithm',
+              immediate. = TRUE)
+
+    if(!('mass' %in% not.found) & 'interval' %in% not.found )
+      message('When mass is in the data set, interval is only required during the ritas algorithm if',
+              ' lag.adjust > 0')
+
+
+    if ('angle' %in% not.found)
+      warning('Column angle not found but can be estimated within pa_yield',
+              immediate. = TRUE)
+    
+    if (is.na(x$check.ritas$overlap)){
+      message('Unable to check polygon overlap due to missing information')
+    }else{
+      cat('Median overlap between harvest polygons is',
+          x$check.ritas$overlap, '%',
+          '\nIf this value seems high, please check the units of distance and swath.\n')
+    }
+    
+  }
+}

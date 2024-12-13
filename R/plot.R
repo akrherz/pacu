@@ -4,6 +4,7 @@
 #' @name pa_plot
 #' @rdname pa_plot
 #' @param x object to be plotted
+#' @return No return value, called for side effects
 #' @export
 pa_plot <- function(x, ...){
   UseMethod('pa_plot', x)

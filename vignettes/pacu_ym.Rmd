@@ -104,8 +104,9 @@ occur with all the algorithms available to the function or
 specify which algorithm should the function target.
 
 ```{r check-yield}
-pa_check_yield(input = raw.yield,
+chk <- pa_check_yield(input = raw.yield,
                algorithm = 'all')
+chk
 
 ```
 
@@ -131,7 +132,8 @@ uncommon name, preventing the functions from identifying it.
 ```{r example-missing-col}
 toy.example <- raw.yield 
 names(toy.example) <- gsub('DRY_BU_AC', 'NOT_A_COMMON_NAME', names(toy.example))
-pa_check_yield(toy.example, algorithm = 'simple')
+chk <- pa_check_yield(toy.example, algorithm = 'simple')
+chk
 ```
 
 To deal with this issue, we can rename the column to a more
@@ -142,7 +144,8 @@ Here, we rename the column simply to "yield" and we can see
 that the algorithm is able to identify it once again.
 ```{r}
 names(toy.example) <- gsub('NOT_A_COMMON_NAME', 'yield', names(toy.example))
-pa_check_yield(toy.example, algorithm = 'simple')
+chk <- pa_check_yield(toy.example, algorithm = 'simple')
+chk
 ```
 
 

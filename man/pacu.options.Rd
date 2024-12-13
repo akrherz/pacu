@@ -5,7 +5,7 @@
 \alias{pacu.options}
 \title{Environment which stores PACU options}
 \format{
-An object of class \code{environment} of length 3.
+An object of class \code{environment} of length 4.
 }
 \usage{
 pacu.options
@@ -23,10 +23,10 @@ Environment which can store the path to the executable, warning settings and
 Environment which stores PACU options
 }
 \examples{
-\dontrun{
+\donttest{
 names(pacu.options)
-pacu_options(exe.path = "some-new-path-to-executable")
-pacu.options$exe.path
+## to suppress messages
+pacu_options(suppress.messages = TRUE)
 }
 
 }

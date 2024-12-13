@@ -39,7 +39,7 @@ and constructs a multi-band raster containing the RGB bands.
 If no \sQuote{aoi} is provided, the script will construct the RGB image for the area covered by the image.
 }
 \examples{
-\dontrun{
+\donttest{
 extd.dir <- system.file("extdata", package = "pacu")
 ## List of zipped Sentinel files in a directory
 s2a.files <- list.files(extd.dir, '\\\\.zip', full.names = TRUE)

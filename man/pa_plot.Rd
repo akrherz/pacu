@@ -142,6 +142,9 @@ plot}
 historical mean. Defaults to the last year in the data
 set.}
 }
+\value{
+No return value, called for side effects
+}
 \description{
 Create interactive or static plots such as yieldmaps, variograms,
 and rgb images from pacu objects.

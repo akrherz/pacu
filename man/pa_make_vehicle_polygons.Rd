@@ -46,7 +46,7 @@ This function will create vehicular polygons
   vehicle's trajectory, and swath.
 }
 \examples{
-\dontrun{
+\donttest{
 ## for examples, see vignette pacu
 }
 

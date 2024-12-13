@@ -9,6 +9,7 @@
 #'   request
 #' @param password password used to authenticate the HTTP
 #'   request
+#' @param verbose whether to print information about this operation
 #' @details `pa_initialize_dataspace()` registers the username
 #'   and password to the machine's R environment. All the
 #'   other functions that rely on authentication will search
@@ -16,7 +17,7 @@
 #'   not share your R environment with others, as they will
 #'   be able to read your username and password. You can
 #'   register at \url{https://dataspace.copernicus.eu/}.
-#' @return NULL
+#' @return No return value, called for side effects
 #' @author Caio dos Santos and Fernando Miguez
 #' @export
 #' @examples
@@ -25,7 +26,7 @@
 #' }
 #'
 
-pa_initialize_dataspace <- function(username, password) {
+pa_initialize_dataspace <- function(username, password, verbose = TRUE) {
 
   ## Path to R env file
   renv.file <- file.path(Sys.getenv("HOME"), ".Renviron")
@@ -46,13 +47,15 @@ pa_initialize_dataspace <- function(username, password) {
     renv.entries <- c(renv.entries,
                       paste0('DATASPACE_USERNAME=', username))
     writeLines(renv.entries, renv.file)
-    cat('New DATASPACE_USERNAME set\n')
+    if (verbose)
+      cat('New DATASPACE_USERNAME set\n')
   }else{
     ## If there is, replace old one
     username.entry.index <- which(grepl('DATASPACE_USERNAME', renv.entries))
     renv.entries[username.entry.index] <- paste0('DATASPACE_USERNAME=', username)
     writeLines(renv.entries, renv.file)
-    cat('DATASPACE_USERNAME replaced\n')
+    if (verbose)
+      cat('DATASPACE_USERNAME replaced\n')
   }
 
   # set key in current session
@@ -65,13 +68,15 @@ pa_initialize_dataspace <- function(username, password) {
     renv.entries <- c(renv.entries,
                       paste0('DATASPACE_PASSWORD=', password))
     writeLines(renv.entries, renv.file)
-    cat('New DATASPACE_PASSWORD set\n')
+    if (verbose)
+      cat('New DATASPACE_PASSWORD set\n')
   }else{
     ## If there is, replace old one
     password.entry.index <- which(grepl('DATASPACE_PASSWORD', renv.entries))
     renv.entries[password.entry.index] <- paste0('DATASPACE_PASSWORD=', password)
     writeLines(renv.entries, renv.file)
-    cat('DATASPACE_PASSWORD replaced\n')
+    if (verbose)
+      cat('DATASPACE_PASSWORD replaced\n')
   }
 
   # set key in current session
@@ -271,6 +276,10 @@ pa_download_dataspace <- function(x,
                                   dir.path = NULL,
                                   aoi = NULL,
                                   verbose = TRUE) {
+  
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+
 
   ## Checking for the right format in the x object
   if(!inherits(x, 'dslist'))
@@ -280,7 +289,7 @@ pa_download_dataspace <- function(x,
   if("" %in% c(Sys.getenv('DATASPACE_USERNAME'), Sys.getenv('DATASPACE_PASSWORD')))
     stop('Dataspace password or username not registered in R envinronemt. Use initialize_dataspace to register credentials to R environment.')
   
-  if(!inherits(aoi, 'sf'))
+  if(!inherits(aoi, 'sf') && !is.null(aoi))
     stop('aoi must be an sf object')
 
   # Checking dependencies
@@ -300,8 +309,10 @@ pa_download_dataspace <- function(x,
     on.exit(close(progress.bar))
   }
 
-  if(is.null(dir.path))
-    dir.path <- '.'
+  if(is.null(dir.path)){
+    dir.path <- file.path(tempdir(), 'pa_download_dataspace')
+    dir.create(dir.path, showWarnings = FALSE, recursive = TRUE)
+  }
 
   if(!is.null(dir.path)){
     if (!dir.exists(dir.path))
@@ -324,8 +335,11 @@ pa_download_dataspace <- function(x,
 
     ## Checking for files that have been downloaded previously
     if (file.exists(outpath)) {
+      
+      if (!s.wrns)
+        warning('File ', basename(outpath), ' has been downloaded. Moving to next.')
+      
       if( verbose == 1){
-      warning('File ', basename(outpath), ' has been downloaded. Moving to next.')
         utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1) 
       }
       sccs <- c(sccs, outpath)
@@ -361,7 +375,8 @@ pa_download_dataspace <- function(x,
     if(inherits(resp, 'try-error') || try(httr::status_code(resp), silent = TRUE) != 200){
       file.remove(outpath)
       fails <- c(fails, i)
-      cat('There was an error downloading this file \n')
+      if (verbose)
+        cat('There was an error downloading this file \n')
     }else{
       if (!is.null(aoi))
         .pa_crop_s2_to_aoi(outpath, aoi)

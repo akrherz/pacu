@@ -16,7 +16,7 @@
 #' @author Caio dos Santos and Fernando Miguez
 #' @export
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' extd.dir <- system.file("extdata", package = "pacu")
 #' ## List of zipped Sentinel files in a directory
 #' s2a.files <- list.files(extd.dir, '\\.zip', full.names = TRUE)
@@ -33,6 +33,7 @@ pa_get_rgb <- function(satellite.images,
                        rgb.bands = c('B04', 'B02', 'B03'),
                        verbose = TRUE){
 
+  
   extensions <- paste0(img.formats, collapse = '|')
   extensions <- paste0('\\.(', extensions, ')$')
   res <- list()

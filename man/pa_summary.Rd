@@ -26,6 +26,13 @@ summarized}
 vegetation index data. For example, mean, median, max,
 min.}
 }
+\value{
+when object is of class dslist, no return value. Called for side effects.
+
+when object is of class yield, returns an object of class data.frame
+
+when object is of class veg.index, returns an object of class stars
+}
 \description{
 Produce summaries for the different pacu objects
 }

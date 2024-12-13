@@ -19,6 +19,7 @@
 #'   polygons to evaluate the overlap between polygons and
 #'   adjust the variable in obs.vector to the effective area
 #'   in the polygon. This is primarely intended for yield.
+#' @return an sf object
 #' @export
 #'
 
@@ -83,12 +84,15 @@ pa_adjust_obs_effective_area <- function(polygons,
 #' @author Caio dos Santos and Fernando Miguez
 #' @export
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' ## for examples, see vignette pacu
 #' }
 #'
 pa_make_vehicle_polygons <- function(points, swath, distance, angle = NULL, cores = 1L, verbose = FALSE){
 
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
   if(!inherits(points, c("sf", "sfc", "sfg")))
     stop("Object 'points' should be of class 'sf', 'sfc' or 'sfg'", call. = FALSE)
 
@@ -121,8 +125,9 @@ pa_make_vehicle_polygons <- function(points, swath, distance, angle = NULL, core
 
     ncores <- cores
     if (cores > cores.avlb){
-      warning('Argument "cores" is greater than the number of available physical cores on the machine. Setting cores argument to ', cores.avlb,
-              immediate. = TRUE)
+      if (!s.wrns)
+        warning('Argument "cores" is greater than the number of available physical cores on the machine. Setting cores argument to ', cores.avlb,
+                immediate. = TRUE)
       ncores <- cores.avlb
     }
 

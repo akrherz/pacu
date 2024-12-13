@@ -4,16 +4,18 @@
 \alias{pacu_options}
 \title{Setting some options for the package}
 \usage{
-pacu_options(exe.path = NA)
+pacu_options(suppress.warnings = FALSE, suppress.messages = FALSE)
 }
 \arguments{
-\item{exe.path}{path to apsim executable. White spaces are not allowed.}
+\item{suppress.warnings}{whether to suppress warning messages}
+
+\item{suppress.messages}{whether to suppress  messages}
 }
 \value{
 as a side effect it modifies the \sQuote{pacu.options} environment.
 }
 \description{
-Set the path to the APSIM-X executable, examples and warning suppression.
+Set settings regarding messages and default behaviors of the package
 }
 \details{
 Set pacu options

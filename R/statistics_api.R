@@ -44,6 +44,9 @@ pa_get_vi_stats<- function(aoi,
                             agg.time = c('P1D', 'P5D', 'P10D'),
                             by.feature = FALSE){
 
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
   url <-  "https://sh.dataspace.copernicus.eu/api/v1/statistics"
 
   agg.time <- match.arg(agg.time)
@@ -74,7 +77,8 @@ pa_get_vi_stats<- function(aoi,
   
   if(any(is.empty)){
     empty.indices <- which(is.empty)
-    warning('Empty polygon(s) will be skipped: ', paste(empty.indices, collapse = ', '))
+    if (!s.wrns)
+      warning('Empty polygon(s) will be skipped: ', paste(empty.indices, collapse = ', '))
     aoi <- aoi[-empty.indices, ]
   }
 
@@ -190,7 +194,7 @@ pa_get_vi_stats<- function(aoi,
 #' the R environment. Do not share your R environment with others, as they will be able to read your client id and secret.
 #' You can register at \url{https://dataspace.copernicus.eu/news}. Please see this section for how to create your Oauth2.0 client:
 #' \url{https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html}.
-#' @return NULL
+#' @return No return value, called for side effects
 #' @author Caio dos Santos and Fernando Miguez
 #' @export
 #' @examples

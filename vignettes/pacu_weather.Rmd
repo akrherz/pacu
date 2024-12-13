@@ -13,11 +13,11 @@ vignette: >
 
 # Specific vignettes
 
-1.  [Satellite data](pacu_sat.html)
+1. [Satellite data](pacu_sat.html)
 
-2.  [Weather data](pacu_weather.html)
+2. [Weather data](pacu_weather.html)
 
-3.   [Yield monitor data](pacu_ym.html)
+3. [Yield monitor data](pacu_ym.html)
 
 4. [Frequently asked questions](pacu_faq.html)
 

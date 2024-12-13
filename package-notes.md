@@ -1,3 +1,23 @@
+## 2024-12-12
+
+- Version 0.1.44
+
+- These changes were made to accommodate  CRAN's stanrdards. Several of these are improvements upon the previous version of the package.
+
+- The pacu_options() function now includes the arguments to suppress messages and warnings globally.
+
+- The pa_check_yield() function does not output the checks as it runs anymore. Now, the function returns an object of class 'check.yield' that can be printed using the appropriate method for this class. 
+
+- Fixed a bug in pa_check_yield() that the function would fail if it tried to estimate the 'interval' variable without success. Now, the function will issue a warning if this happens.
+
+- Edited the DESCRIPTION file to conform to CRAN's standards
+
+- Improved the documentation of a few functions that were missing the return value.
+
+- Unwrapped several examples from 'dontrun'.
+
+- The pa_download_dataspace function would write files to the working directory by default. That has since changed and it's written to a temporary directory. The same is valid for the .pa_crop_s2_to_aoi() function. 
+
 ## 2024-12-09
 
 - Version 0.1.43

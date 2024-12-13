@@ -7,3 +7,6 @@ tests-results
 .*
 *.Rproj
 !/.gitignore
+.Rproj.user
+/inst/python
+desktop.ini
