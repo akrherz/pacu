@@ -16,7 +16,7 @@ check the data. Different algorithms require different
 information to be present in the input data set.}
 }
 \value{
-No return value, called for side effects
+object of class check.yield
 }
 \description{
 This function will check for red flags so

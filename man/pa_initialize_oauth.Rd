@@ -25,7 +25,7 @@ You can register at \url{https://dataspace.copernicus.eu/news}. Please see this 
 \url{https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html}.
 }
 \examples{
-\donttest{
+\dontrun{
 pa_initialize_oauth('my-client-id', 'my-client-secret')
 }
 

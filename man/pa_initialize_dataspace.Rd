@@ -33,7 +33,7 @@ Register the Data Space credentials to the R
   register at \url{https://dataspace.copernicus.eu/}.
 }
 \examples{
-\donttest{
+\dontrun{
 pa_initialize_dataspace('my-username', 'my-password')
 }
 
