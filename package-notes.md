@@ -2,6 +2,10 @@
 
 - Version 0.1.44
 
+- Fixed a bug in pa_yield when dealing with units
+
+- Supressed some of the sf warnings that we have accounted for in the code
+
 - These changes were made to accommodate  CRAN's stanrdards. Several of these are improvements upon the previous version of the package.
 
 - The pacu_options() function now includes the arguments to suppress messages and warnings globally.

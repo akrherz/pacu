@@ -253,7 +253,7 @@ pa_yield <- function(input,
 
     
     if (!is.null(grid) && !is.null(boundary)) {
-      grid <- sf::st_intersection(grid, boundary)
+      grid <- suppressWarnings(sf::st_intersection(grid, boundary))
     }
     
   if (algorithm == 'simple') {
@@ -331,7 +331,7 @@ pa_yield <- function(input,
 
     if (!is.null(grid)) {
       if (!is.null(boundary)) {
-        grid <- sf::st_intersection(grid, boundary)
+        grid <- suppressWarnings(sf::st_intersection(grid, boundary))
       }
       f.grid <- stats::aggregate(tgt, grid, FUN = function(x) mean(x, na.rm = TRUE))
       f.grid <- stats::na.omit(f.grid)
@@ -342,10 +342,12 @@ pa_yield <- function(input,
     names(app.pols) <- c('mass', 'geometry')
 
     if (tolower(data.units[1]) %in% c('bu/ac', 'bushel/acre')) {
-      if(is.null(lbs.per.bushel)) {stop('When the units of the yield data are in the U.S. standard system of units, lbs.per.bushel must be supplied.')}
+      
+      if(is.null(lbs.per.bushel)) {
+        stop('When the units of the yield data are in the U.S. standard system of units, lbs.per.bushel must be supplied.')
+      }
       app.pols$mass <- .pa_bushel_metric(app.pols$mass, lbs.per.bushel, 'metric', 1)
     }else{
-      units(app.pols$mass) <- units::as_units(data.units[1])
       units(app.pols$mass) <- units::as_units('g/m2')
       attributes(app.pols$mass) <- NULL
     }
