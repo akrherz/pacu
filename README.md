@@ -1,11 +1,21 @@
 # pacu: Precision Agriculture Computational Utilities <img src="man/figures/logo.png" align="right" height="120" alt="" />
 
+[![CRAN](http://www.r-pkg.org/badges/version/pacu)](https://CRAN.R-project.org/package=pacu)
+[![CRAN
+downloads total](https://cranlogs.r-pkg.org/badges/grand-total/pacu)](https://github.com/r-hub/cranlogs.app)
+[![CRAN downloads](https://cranlogs.r-pkg.org/badges/pacu)](https://cran.r-project.org/package=pacu)
+
 The *pacu* package allows for processing, visualization, and analysis of yield monitor data. Additionally, this package also allows for retrieval, processing, and visualization of weather and satellite data.
 
 
 ## Installation
 
-pacu is not yet available on CRAN. To install pacu from github you can try:
+pacu is available on CRAN. To install pacu, you can run:
+
+> install.packages("pacu")
+
+
+To install the development version from github you can try:
 
 > devtools::install_github("cldossantos/pacu")\
 > library(pacu)
