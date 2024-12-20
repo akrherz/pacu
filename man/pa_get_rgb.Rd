@@ -10,6 +10,7 @@ pa_get_rgb(
   pixel.res = "10m",
   img.formats = c("jp2", "tif"),
   rgb.bands = c("B04", "B02", "B03"),
+  fun = function(x) mean(x, na.rm = TRUE),
   verbose = TRUE
 )
 }
@@ -24,6 +25,8 @@ pa_get_rgb(
 
 \item{rgb.bands}{a vector containing the order of the RGB bands}
 
+\item{fun}{function to be applied to consolidate duplicated images}
+
 \item{verbose}{whether to display information on the
 progress of operations}
 }
@@ -37,6 +40,11 @@ Retrieve an RGB image from a zipped Sentinel 2 file
 This is script that unzips the Sentinel 2 zipped file into a temporary folder, searches for the RGB,
 and constructs a multi-band raster containing the RGB bands.
 If no \sQuote{aoi} is provided, the script will construct the RGB image for the area covered by the image.
+  An important detail of this function is that, if there are
+  duplicated dates, the function will consolidate the data into 
+  a single raster layer. The default behavior is to average the 
+  layers that belong to the same date. This can be changed with the 
+  'fun' argument.
 }
 \examples{
 \donttest{

@@ -24,6 +24,7 @@
 #'   zipped file
 #' @param downscale.to the resolution in meters to downscale the 
 #'   resolution of the vegetation index raster layer
+#' @param fun function to be applied to consolidate duplicated images
 #' @param verbose whether to display information on the
 #'   progress of operations
 #' @details This is script that unzips the Sentinel 2 zipped
@@ -39,6 +40,11 @@
 #'   \deqn{NDVI = \frac{(NIR - RED)}{(NIR + RED)}} 
 #'   \deqn{RECI = \frac{(NIR)}{(RED edge)} - 1}
 #' 
+#'   An important detail of this function is that, if there are
+#'   duplicated dates, the function will consolidate the data into 
+#'   a single raster layer. The default behavior is to average the 
+#'   layers that belong to the same date. This can be changed with the 
+#'   'fun' argument.
 #' @return an object of class veg.index and stars
 #' @author Caio dos Santos and Fernando Miguez
 #' @export
@@ -69,6 +75,7 @@ pa_compute_vi <- function(satellite.images,
                           downscale.to = NULL,
                           pixel.res = c('default', '10m', '20m', '60m'),
                           img.formats = c('jp2', 'tif'),
+                          fun = function(x) mean(x, na.rm = TRUE),
                           verbose = TRUE){
 
   pixel.res <- match.arg(pixel.res)
@@ -81,7 +88,6 @@ pa_compute_vi <- function(satellite.images,
       return(NULL)
     }
   }
-  
   if(is.null(aoi) && check.clouds == TRUE) 
     stop('When check.clouds is TRUE, aoi must be supplied')
   
@@ -192,11 +198,11 @@ pa_compute_vi <- function(satellite.images,
      
   }
 
-  
   sorted <- sapply(res, function(x) stars::st_get_dimension_values(x, 'time'))
   sorted <- order(sorted)
   res <- res[sorted]
-  
+  res <- .pa_align_bbox(res)
+  res <- .pa_consolidate_dates(res, fun = fun)
   res <- do.call(c, c(res, along = 'time'))
   
   if (!is.null(downscale.to)){

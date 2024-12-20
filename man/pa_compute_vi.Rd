@@ -14,6 +14,7 @@ pa_compute_vi(
   downscale.to = NULL,
   pixel.res = c("default", "10m", "20m", "60m"),
   img.formats = c("jp2", "tif"),
+  fun = function(x) mean(x, na.rm = TRUE),
   verbose = TRUE
 )
 }
@@ -45,6 +46,8 @@ vegetation index. Can be one of 10m, 20m, 30m}
 \item{img.formats}{image formats to search for in the
 zipped file}
 
+\item{fun}{function to be applied to consolidate duplicated images}
+
 \item{verbose}{whether to display information on the
 progress of operations}
 }
@@ -68,6 +71,12 @@ This is script that unzips the Sentinel 2 zipped
   \deqn{NDRE = \frac{(NIR - RED edge)}{(NIR + RED edge)}} 
   \deqn{NDVI = \frac{(NIR - RED)}{(NIR + RED)}} 
   \deqn{RECI = \frac{(NIR)}{(RED edge)} - 1}
+
+  An important detail of this function is that, if there are
+  duplicated dates, the function will consolidate the data into 
+  a single raster layer. The default behavior is to average the 
+  layers that belong to the same date. This can be changed with the 
+  'fun' argument.
 }
 \examples{
 \donttest{

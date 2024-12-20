@@ -1,3 +1,9 @@
+## 2024-12-20
+
+- Version 0.1.45
+
+- The pa_compute_vi() and pa_get_rgb() functions will now check that all images have the same bounding box so that a proper raster stack can be created. Additionally, if there are more than one layer per date, these will be consolidated using the argument "fun". The default is to average layers with the same data but the user can change that behavior. 
+
 ## 2024-12-12
 
 - Version 0.1.44

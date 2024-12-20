@@ -136,6 +136,8 @@ pa_plot.veg.index <- function(x,
 
   plot.type <- match.arg(plot.type)
   
+  
+  
   if (is.null(plot.var))
     plot.var <- attr(x, 'vegetation.index')
   

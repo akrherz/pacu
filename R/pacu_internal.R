@@ -410,6 +410,72 @@
   return(mtd)
 }
 
+#'
+#' @title Aligns the bounding box of stars objects in a list
+#' @description  Aligns the bounding box of stars objects in a list
+#' @name .pa_alig_bbox
+#' @rdname .pa_alig_bbox
+#' @param object a list contaning stars objects
+#' @return a list containing stars objects
+#' @noRd
+.pa_align_bbox <- function(object){
+  exts <- lapply(object, function(x) sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(x))))
+  ext <- Reduce(function(x, y) {sf::st_union(x, y)},
+                x = exts)
+  for ( i in 1:length(object)){
+    dx <- dy <- unname(st_res(object[[i]])[1])
+    new.bb <- stars::st_as_stars(sf::st_bbox(ext), dx = dx, dy = dy)
+    aligned <- stars::st_warp(object[[i]], new.bb)
+    aligned <- stars::st_set_dimensions(aligned, which = 'time',
+                                        value = stars::st_get_dimension_values(object[[i]], 'time'))
+    object[[i]] <- aligned
+  }
+  return(object)
+}
+
+#'
+#' @title Consolidates duplicated dates into one single image
+#' @description  Consolidates duplicated dates into one single image
+#' @name .pa_consolidate_dates
+#' @rdname .pa_consolidate_date
+#' @param object a list contaning stars objects
+#' @param fun function to be applied to duplicated dates
+#' @return a list containing stars objects
+#' @noRd
+.pa_consolidate_dates <-  function(object, 
+                                   fun = function(x) mean(x, na.rm = TRUE)){
+  
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  date.grp <- sapply(object, function(x) stars::st_get_dimension_values(x, 'time'))
+  
+  res <-list()
+  for (gp in unique(date.grp)){
+    gp.i <- which(date.grp == gp)
+    if (length(gp.i) > 1){
+      gp.date <- as.Date(stars::st_get_dimension_values(object[[gp.i[1]]], 'time'))
+      
+      if (!s.wrns)
+        warning('Date ', gp.date, ' has duplicate data. Consolidating into one layer.')
+        
+      var.name <- names(object[[gp.i[1]]])
+      cons <- stars::st_apply(do.call(c, c(object[gp.i], along = 'time')),
+                              c("x", "y"),
+                              FUN = fun) 
+      names(cons) <- var.name
+      cons <- stars::st_redimension(cons,
+                                    new_dims = c(dim(cons), 1))
+      cons <- stars::st_set_dimensions(cons, names = c('x', 'y', 'time'))
+      cons <- stars::st_set_dimensions(cons, 3, gp.date)
+      res[[length(res) + 1]] <- cons
+      
+    }else{
+      res[[length(res) + 1]] <- object[[gp.i]]
+    }
+  }
+  return(res)
+}
+
 ## Weather ----
 #' Convert the units in a met file to standard units
 #' @name .pa_convert_met_to_standard
