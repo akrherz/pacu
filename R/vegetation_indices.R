@@ -77,10 +77,10 @@ pa_compute_vi <- function(satellite.images,
                           img.formats = c('jp2', 'tif'),
                           fun = function(x) mean(x, na.rm = TRUE),
                           verbose = TRUE){
-
+  
   pixel.res <- match.arg(pixel.res)
   vi <- match.arg(vi)
-
+  
   req.namespaces <- c('stars', 'sf')
   for (ns in req.namespaces) {
     if(!requireNamespace(ns, quietly = TRUE)){
@@ -92,22 +92,22 @@ pa_compute_vi <- function(satellite.images,
     stop('When check.clouds is TRUE, aoi must be supplied')
   
   
-
+  
   ibands <- list(ndvi = c('B08', 'B04'),
                  ndre = c('B08', 'B05'),
                  gcvi = c('B08', 'B03'),
                  reci = c('B08', 'B05'),
                  evi = c('B08', 'B04', 'B02'),
                  bsi = c('B11', 'B04', 'B02', 'B08' ))
-
+  
   iops <- list(ndvi = expression((b[[1]] - b[[2]]) / (b[[1]] + b[[2]])),
                ndre = expression((b[[1]] - b[[2]]) / (b[[1]] + b[[2]])),
                gcvi = expression(b[[1]]/b[[2]] - 1),
                reci = expression(b[[1]]/b[[2]] - 1),
                evi = expression(2.5 * (b[[1]] - b[[2]]) / ((b[[1]] + 6.0 * b[[2]] - 7.5 * b[[3]]) + 1.0)),
                bsi = expression(((b[[1]] + b[[2]]) - (b[[4]] + b[[3]])) / ((b[[1]] + b[[2]]) + (b[[4]] + b[[3]]))))
-
-
+  
+  
   res <- list()
   
   if(verbose == 1){
@@ -117,15 +117,15 @@ pa_compute_vi <- function(satellite.images,
                                           initial = 0)
     on.exit(close(progress.bar))
   }
-
+  
   for (sat.img in satellite.images) {
     if (verbose > 1) {
       cat('processing ', sat.img, '\n')
-      }
+    }
     
     if(!is.null(aoi) && check.clouds == TRUE) {
       clouds <- .pa_get_cloud_polygon(sat.img)
-
+      
       if(!is.null(clouds)){
         boundary <- sf::st_as_sfc(sf::st_bbox(sf::st_transform(aoi, sf::st_crs(clouds))))
         cloud.buffer <- sf::st_buffer(boundary, buffer.clouds)
@@ -135,38 +135,63 @@ pa_compute_vi <- function(satellite.images,
         check.overlap <- FALSE
         if(any(clouds[[3]] > 0)){check.overlap <- TRUE}
         
-
+        
         if(check.overlap) {
           if( verbose == 1){
-          warning('Clouds detected over the AOI. Skipping ', basename(sat.img))
+            warning('Clouds detected over the AOI. Skipping ', basename(sat.img))
             utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1) 
           }
           next
         }
-
+        
       }
     }
-
+    
     bname <- basename(sat.img)
     bname <- strsplit(bname, '\\.')[[1]][1]
     temporary.dir <- tempdir(check = TRUE)
-    temporary.dir <- file.path(temporary.dir, bname)
-    dir.create(temporary.dir, showWarnings = FALSE, recursive = TRUE)
-    utils::unzip(sat.img[[1]], overwrite = TRUE, exdir = temporary.dir, junkpaths = TRUE)
-
+    temporary.dir <- file.path(temporary.dir,'pa_compute_vi', bname)
+    
+    dir.create(temporary.dir, 
+               showWarnings = FALSE,
+               recursive = TRUE)
+    
+    imgList <- utils::unzip(sat.img[[1]], 
+                            list = TRUE)
+    files.tgt <- .pa_select_s2_files(sat.img[[1]])
+    files.out <- sapply(files.tgt, function(x) grep(x, imgList[[1]], value = TRUE))
+    
+    utils::unzip(sat.img[[1]], 
+                 files = files.out,
+                 overwrite = TRUE, 
+                 exdir = temporary.dir, 
+                 junkpaths = TRUE)
+    
     rs <- list()
     for (b in ibands[[vi]]){
       bpath <- .pa_get_band(b, temporary.dir, pixel.res, img.formats)
       bimg <- stars::read_stars(bpath)
-
+      
+      if(!is.null(downscale.to)){
+        crt.crs <- sf::st_crs(bimg)
+        is.utm <- grepl('UTM zone', crt.crs$wkt)
+        if (!is.utm)
+          stop('When downscale.to is not NULL, CRS should be UTM')
+        new.bimg <- stars::st_as_stars(sf::st_bbox(bimg), 
+                                       dx = downscale.to, 
+                                       dy = downscale.to)
+        bimg <- stars::st_warp(bimg, new.bimg)
+      }
+      
       if(!is.null(aoi)){
         boundary <- sf::st_geometry(sf::st_transform(aoi, sf::st_crs(bimg)))
         bimg <- sf::st_crop(bimg, boundary, crop = TRUE)
       }
-
+      
+      
       rs <- suppressWarnings(append(rs, list(bimg)))
     }
-
+    
     resolutions <- lapply(rs, function(x) stars::st_res(x)[[1]])
     if (length(unique(resolutions)) > 1) {
       i.greater <- which.max(resolutions)
@@ -175,11 +200,11 @@ pa_compute_vi <- function(satellite.images,
                                   stars::st_as_stars(rs[[i.greater]]))
       }
     }
-
+    
     op <- iops[[vi]]
     img <- eval(op, list(b = rs))
     img <- stars::st_as_stars(img)
-
+    
     metadata.file <- .pa_select_s2_files(sat.img, which = 'metadata')
     metadata.file <- grep(metadata.file, list.files(temporary.dir), value = TRUE)
     metadata <- .pa_read_s2_metadata(file.path(temporary.dir, metadata.file))
@@ -195,27 +220,29 @@ pa_compute_vi <- function(satellite.images,
     if( verbose == 1){
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1) 
     }
-     
+    
   }
-
+  
   sorted <- sapply(res, function(x) stars::st_get_dimension_values(x, 'time'))
   sorted <- order(sorted)
   res <- res[sorted]
-  res <- .pa_align_bbox(res)
-  res <- .pa_consolidate_dates(res, fun = fun)
+  if (length(res) > 1){
+    res <- .pa_align_bbox(res)
+    res <- .pa_consolidate_dates(res, fun = fun) 
+  }
   res <- do.call(c, c(res, along = 'time'))
   
-  if (!is.null(downscale.to)){
-    crt.crs <- sf::st_crs(res)
-    is.utm <- grepl('UTM zone', crt.crs$wkt)
-    if (!is.utm)
-      stop('When downscale.to is not NULL, CRS should be UTM')
-    
-    new.res <- stars::st_as_stars(sf::st_bbox(res), 
-                                  dx = downscale.to, 
-                                  dy = downscale.to)
-    res <- stars::st_warp(res, new.res)
-  }
+  # if (!is.null(downscale.to)){
+  #   crt.crs <- sf::st_crs(res)
+  #   is.utm <- grepl('UTM zone', crt.crs$wkt)
+  #   if (!is.utm)
+  #     stop('When downscale.to is not NULL, CRS should be UTM')
+  #   
+  #   new.res <- stars::st_as_stars(sf::st_bbox(res), 
+  #                                 dx = downscale.to, 
+  #                                 dy = downscale.to)
+  #   res <- stars::st_warp(res, new.res)
+  # }
   
   attr(res, 'vegetation.index') <- vi
   class(res) <- c('veg.index', class(res))

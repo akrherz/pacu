@@ -113,6 +113,8 @@
 #'   diluting the treatment effects. When this argument is
 #'   TRUE, the argument \sQuote{grid} must be supplied.
 #' @param cores the number of cores used in the operation
+#' @param steps (EXPERIMENTAL) whether to return the intermediate steps 
+#' of the yield processing algorithm
 #' @param verbose whether to print function progress.
 #'   \sQuote{FALSE or 0} will suppress details. \sQuote{TRUE
 #'   or 1} will print a progress bar. \sQuote{>1} will print
@@ -162,107 +164,108 @@ pa_yield <- function(input,
                      lag.adj = 0,
                      unit.system = c('none', 'metric', 'standard'),
                      remove.crossed.polygons = FALSE,
+                     steps = FALSE,
                      cores = 1L,
                      verbose = TRUE,
                      ...) {
-
+  
   algorithm <- match.arg(algorithm)
   smooth.method <- match.arg(smooth.method)
   unit.system <- match.arg(unit.system)
   fun <- match.arg(fun)
   pb <- ifelse(verbose == 1, TRUE, FALSE)
   verbose <- ifelse(verbose > 1, 1, 0)
-
-
+  
+  
   if (algorithm == 'none')
     stop('Please choose between the simple and ritas algorithms')
-
+  
   if (unit.system == 'none')
     stop('Please choose between the metric and standard unit systems')
-
+  
   if (any(!(data.columns[!is.na(data.columns)] %in% names(input))))
     stop('One or more of the data.columns supplied does not match any columns in the input.')
-
+  
   if ((is.null(lbs.per.bushel) && unit.system == 'standard') ||
       (any(grepl('bu', data.units)) && is.null(lbs.per.bushel))){
     stop('"lbs.per.bushel" argument is needed to convert units to/from US standard unit system.')
   }
-
+  
   if(verbose) cat("Starting... \n")
-
+  
   crt.crs <- sf::st_crs(input)
   if(is.na(crt.crs)) {
     if (verbose) cat("No CRS found. Defaulting to EPSG:4326 \n")
     sf::st_crs(input) <- 'epsg:4326'
   }
-
+  
   input <- pa_2utm(input, verbose) ## This step appears to be quick
-
+  
   if(!is.null(boundary)){
     if (sf::st_crs(boundary) != sf::st_crs(input)) {
       boundary <- sf::st_transform(boundary, sf::st_crs(input))
     }
   }
-
-
-
+  
+  
+  
   if(!is.null(grid)){
-
+    
     if (!inherits(grid, 'sf')) {
       grid <- sf::st_as_sf(grid)
     }
-
+    
     if(is.na(sf::st_crs(grid))) {
       if (verbose) cat("No CRS found for grid. Defaulting to EPSG:4326 \n")
       sf::st_crs(grid) <- 'epsg:4326'
     }
-
+    
     if (sf::st_crs(grid) != sf::st_crs(input)) {
       grid <- sf::st_transform(grid, sf::st_crs(input))
     }
-
+    
     if (!all(c('X', 'Y') %in% names(grid))) {
       grid <- cbind(grid, suppressWarnings(sf::st_coordinates(sf::st_centroid(grid))))
     }
-
+    
   }
-
-
+  
+  
   if (is.null(formula)) {
     form <- formula(z ~ 1)
   }else{
     form <- formula(formula)
   }
-
-
-    if(!is.null(formula) && smooth.method != 'krige') {
-      stop('formula should only be used when smooth.method = krige')
-    }
-
-
-    exp.vars <-  all.vars(form)
-    exp.vars <- exp.vars[exp.vars != 'z']
-
-    if (length(exp.vars) > 0) {
-      if (is.null(grid))
-        stop('When formula contains explanatory variables, grid must be supplied.')
-
-      if (!all(exp.vars %in% names(grid)))
-        stop('One or more of the explanatory variables are not present in the grid.')
-    }
-
+  
+  
+  if(!is.null(formula) && smooth.method != 'krige') {
+    stop('formula should only be used when smooth.method = krige')
+  }
+  
+  
+  exp.vars <-  all.vars(form)
+  exp.vars <- exp.vars[exp.vars != 'z']
+  
+  if (length(exp.vars) > 0) {
+    if (is.null(grid))
+      stop('When formula contains explanatory variables, grid must be supplied.')
     
-    if (!is.null(grid) && !is.null(boundary)) {
-      grid <- suppressWarnings(sf::st_intersection(grid, boundary))
-    }
-    
+    if (!all(exp.vars %in% names(grid)))
+      stop('One or more of the explanatory variables are not present in the grid.')
+  }
+  
+  
+  if (!is.null(grid) && !is.null(boundary)) {
+    grid <- suppressWarnings(sf::st_intersection(grid, boundary))
+  }
+  
   if (algorithm == 'simple') {
-
+    
     if(pb) {
       progress.bar <- utils::txtProgressBar(min = 0, max = 5, style = 3, initial = -1)
       on.exit(close(progress.bar))
     }
-
+    
     exp.order <- c('yield', 'moisture', 'interval')
     if (is.null(data.columns)) data.columns <- rep(NA, 3)
     if (is.null(data.units)) data.units <- rep(NA, 3)
@@ -272,10 +275,10 @@ pa_yield <- function(input,
     if(is.null(names(data.units))) names(data.units) <- exp.order
     data.units <- data.units[exp.order]
     data.columns <- data.columns[exp.order]
-
+    
     if(lag.adj > 0) {
       interval <- .pa_get_variable(input, 'interval', data.units['interval'], data.columns['interval'], verbose)
-
+      
       if (is.null(interval)) {
         time <- try(input[[.pa_get_variable_columns(input, 'time', verbose)]], silent = TRUE)
         if(inherits(time, 'try-error'))
@@ -284,51 +287,54 @@ pa_yield <- function(input,
         interval <- .pa_enforce_units(interval, 'time')
         input$interval <- interval
       }
-
+      
       input <- .pa_adjust_lag(input, lag.adj, 'interval')
     }
-
-
+    
+    
     moisture <- .pa_get_variable(input, 'moisture', data.units['moisture'], data.columns['moisture'], verbose)
     yield <- .pa_get_variable(input, 'yield', data.units['yield'], data.columns['yield'], verbose)
-
+    
     not.found <- sapply(list(yield, moisture), is.null)
     if(any(not.found)) {
       not.found.i <- which(not.found == TRUE)
       stop('unable to find column(s): ', paste(exp.order[not.found.i], collapse = ', '))
     }
-
+    
     if(pb)
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+    
     if (units(yield)[[1]] == 'bushel') {
       data.units[1] <- 'bushel/acre'
       attributes(yield) <- NULL
     }
-
+    
     if(pb)
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+    
     tgt <- data.frame(yield = yield)
     tgt <- cbind(tgt, sf::st_geometry(input))
     tgt <- st_as_sf(tgt)
-
+    
     attributes(moisture) <- NULL
     if(is.null(moisture.adj)) {moisture.adj <- mean(moisture, na.rm = TRUE)}
     tgt[[1]] <- .pa_moisture(tgt[[1]], crt = moisture, to = 0, verbose = FALSE)
-
-
+    
+    
+    initial.geometries <- sf::st_geometry(tgt)
     if(clean){
       if (is.null(boundary)){
         if(verbose)
           cat('The argument boundary is needed to clean the data from the field edges. Estimating it internally.')
-
+        
         boundary <- .pa_field_boundary(sf::st_geometry(input))
       }
-
       tgt <- .pa_clean_yield_monitor(tgt, 'yield', boundary, clean.edge.distance, clean.sd, verbose)
+      
     }
-
+    
+    final.geometries <- sf::st_geometry(tgt)
+    
     if (!is.null(grid)) {
       if (!is.null(boundary)) {
         grid <- suppressWarnings(sf::st_intersection(grid, boundary))
@@ -337,10 +343,10 @@ pa_yield <- function(input,
       f.grid <- stats::na.omit(f.grid)
       tgt <- f.grid
     }
-
+    
     app.pols <- tgt
     names(app.pols) <- c('mass', 'geometry')
-
+    
     if (tolower(data.units[1]) %in% c('bu/ac', 'bushel/acre')) {
       
       if(is.null(lbs.per.bushel)) {
@@ -351,13 +357,20 @@ pa_yield <- function(input,
       units(app.pols$mass) <- units::as_units('g/m2')
       attributes(app.pols$mass) <- NULL
     }
-
+    
     if(pb)
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
+    
+  sbs <- list(initial.geometries, final.geometries)
+  steps.names <- c('initial.geometries', 
+                   'final.geometries',
+                   'grid')
   }
-
+  
+  
   if (algorithm == 'ritas') {
-
+    
+    sbs <- list()
     ## handling units and column names
     exp.order <- c('mass', 'flow', 'moisture', 'interval', 'angle', 'width', 'distance')
     if (is.null(data.columns)) data.columns <- rep(NA, 7)
@@ -366,7 +379,7 @@ pa_yield <- function(input,
     if(is.null(names(data.units))) names(data.units) <- exp.order
     data.units <- data.units[exp.order]
     data.columns <- data.columns[exp.order]
-
+    
     interval <- .pa_get_variable(input, 'interval', data.units['interval'], data.columns['interval'], verbose)
     if (is.null(interval)) {
       time.col <- .pa_get_variable_columns(input, 'time', verbose)
@@ -377,7 +390,7 @@ pa_yield <- function(input,
         input$interval <- interval
       }
     }
-
+    
     if(lag.adj > 0) {
       int.names <- .pa_get_variable_names('interval')
       if(is.null(int.names)){
@@ -387,11 +400,11 @@ pa_yield <- function(input,
       input <- .pa_adjust_lag(input, lag.adj, int.col)
       interval <- .pa_get_variable(input, 'interval', data.units['interval'], data.columns['interval'], verbose)
     }
-
+    
     ## keeping track of the units. this is intend this to prevent mistakes.
     mass <- .pa_get_variable(input, 'mass', data.units['mass'], data.columns['mass'], verbose)
     moisture <- .pa_get_variable(input, 'moisture', data.units['moisture'], data.columns['moisture'], verbose)
-
+    
     if(is.null(mass)){
       flow <- .pa_get_variable(input, 'flow', data.units['flow'], data.columns['flow'], verbose)
       if (is.null(interval) || is.null(flow))
@@ -403,7 +416,7 @@ pa_yield <- function(input,
       flow <- 'mass is present'
       mass <- .pa_moisture(mass, moisture, 0, verbose)
     }
-
+    
     angle <- .pa_get_variable(input, 'angle', data.units['angle'], data.columns['angle'], verbose)
     if(is.null(angle)) {
       if(verbose) cat('Trajectory angle not found. estimating it from geographical coordinates.\n')
@@ -411,63 +424,70 @@ pa_yield <- function(input,
     }
     swath <- .pa_get_variable(input, 'width', data.units['width'], data.columns['width'], verbose)
     distance <- .pa_get_variable(input, 'distance', data.units['distance'], data.columns['distance'], verbose)
-
+    
     ## checking that all necessary variables were found
     not.found <- sapply(list(mass, flow, moisture, interval, angle, swath, distance), is.null)
     if(any(not.found)) {
       not.found.i <- which(not.found == TRUE)
       stop('unable to find column(s): ', paste(exp.order[not.found.i], collapse = ', '))
     }
-
+    
     ### might need to change this after testing
     if(pb) {
       progress.bar <- utils::txtProgressBar(min = 0, max = 7, style = 3)
       on.exit(close(progress.bar))
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
     }
-
-
+    
+    
     units(moisture) <- NULL
     if(is.null(moisture.adj)) {moisture.adj <- mean(moisture, na.rm = TRUE)}
-
+    
+    sbs[[length(sbs) + 1]] <- sf::st_geometry(input)
+    
     ## now, we can drop the units because we know which units are
     ## in and out of each operation
     swath <- units::drop_units(swath)
     distance <- units::drop_units(distance)
     angle <- units::drop_units(angle)
-
+    
     if(pb)
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+    
     v.pols <- pa_make_vehicle_polygons(sf::st_geometry(input),
                                        swath,
                                        distance,
                                        angle,
                                        cores = cores,
                                        verbose = verbose)
-
+    
+    sbs[[length(sbs) + 1]] <- sf::st_geometry(v.pols)
+    
     if(pb)
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+    
     adj.pols <- pa_adjust_obs_effective_area(v.pols,
                                              mass,
                                              var.label = 'mass',
                                              overlap.threshold = overlap.threshold,
                                              cores = cores,
                                              verbose = verbose)
-
+    
+    sbs[[length(sbs) + 1]] <- sf::st_geometry(adj.pols)
+    
     if(remove.crossed.polygons) {
-
+      
       if(is.null(grid)){
         stop('when remove.crossed.polygons is true, grid needs to be supplied')
       }
+      
       grid <- sf::st_transform(grid, sf::st_crs(input))
       cpi <- sf::st_covered_by(adj.pols, grid)
       cpi <- as.numeric(cpi)
       adj.pols <- adj.pols[!is.na(cpi), ]
       if (verbose) {cat('removing ', sum(is.na(cpi)), 'vehicle polygons that crossed experimental units from the grid \n')}
     }
-
+    
 
     if(clean){
       if (is.null(boundary)){
@@ -477,28 +497,35 @@ pa_yield <- function(input,
       }
       adj.pols <- .pa_clean_yield_monitor(adj.pols, 'adj.mass', boundary, clean.edge.distance, clean.sd, verbose)
     }
-
+    
+    sbs[[length(sbs) + 1]] <- sf::st_geometry(adj.pols)
+    
     if(pb)
       utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+    
     app.pols <- pa_apportion_mass(polygons =  sf::st_geometry(adj.pols),
-                               mass.vector = adj.pols$adj.mass,
-                               cores = cores,
-                               verbose = verbose)
-
+                                  mass.vector = adj.pols$adj.mass,
+                                  cores = cores,
+                                  verbose = verbose)
+    
+    sbs[[length(sbs) + 1]] <- sf::st_geometry(app.pols)
+    
+    
+  steps.names <- c('initial.points', 'harvest.polygons', 'adjusted.polygons', 
+                  'cleaned.polygons', 'apportioned.polygons', 'grid')
   }
-
+  
   ## the following steps are the same regardless of the algorithm
-
+  
   if (!is.null(grid)){
     app.pols <- suppressWarnings(sf::st_join(app.pols, grid, join = sf::st_intersects, left = TRUE, largest = TRUE))
   }
-
-
-
+  
+  
+  
   if(pb)
     utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+  
   if (smooth.method == 'krige'){
     app.pols$mass <- .pa_moisture(app.pols$mass, 0, moisture.adj, verbose)
     app.pols$mass[app.pols$mass == 0] <- 1e-3
@@ -513,7 +540,7 @@ pa_yield <- function(input,
                          fun = fun,
                          verbose = verbose,
                          ...)
-
+    
     variogram.model <- preds[[2]]
     variogram <- preds[[3]]
     preds <- preds[[1]]
@@ -522,24 +549,24 @@ pa_yield <- function(input,
     preds <- cbind(preds, predicted.var)
     preds <- preds[c(var.label,  paste0(var.label,'.var'), 'geometry')]
     sf::st_geometry(preds) <- 'geometry'
-
+    
     if (!is.null(grid)){
       if(length(exp.vars) > 0)
         preds <- cbind(preds, as.data.frame(grid)[exp.vars])
     }
-
+    
     preds[[1]] <- .pa_unit_system(preds[[1]], unit.system, lbs.per.bushel)
     preds[[2]] <- .pa_unit_system(preds[[2]], unit.system, lbs.per.bushel, 2)
     attr(preds[[2]], 'units') <- paste(unlist(units(preds[[2]])[1:2]), collapse = '/')
     attributes(preds[[2]]) <- NULL
   }
-
+  
   if (smooth.method == 'idw'){
-
+    
     if (form != formula(z ~ 1)){
       stop('The IDW smoothing method does not allow for predictors in the formula. The "formula" argument should be: z ~ 1')
     }
-
+    
     app.pols$z <- app.pols$mass
     app.pols <- subset(app.pols, !is.na(mass))
     preds <- .pa_predict(formula = form,
@@ -549,12 +576,12 @@ pa_yield <- function(input,
                          cores = cores,
                          verbose = verbose,
                          ...)
-
+    
     variogram.model <- NULL
     variogram <- NULL
     preds <- preds[[1]]
-
-
+    
+    
     predicted.var <- data.frame(preds$var1.pred)
     names(predicted.var) <- var.label
     preds <- cbind(preds, predicted.var)
@@ -574,10 +601,10 @@ pa_yield <- function(input,
     variogram.model <- NULL
     variogram <- NULL
   }
-
+  
   if(pb)
     utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+  
   attr(preds, 'moisture') <- moisture.adj
   attr(preds, 'units') <- paste(unlist(units(preds[[var.label]])[1:2]), collapse = '/')
   attr(preds, 'algorithm') <- algorithm
@@ -586,20 +613,29 @@ pa_yield <- function(input,
   attr(preds, 'resp') <- var.label
   if(!is.null(lbs.per.bushel))
     attr(preds, 'lbs.per.bushel') <- lbs.per.bushel
-
-
+  
+  
   attributes(preds[[var.label]]) <- NULL
-
+  
+  sbs[[length(sbs) + 1]] <- sf::st_geometry(preds)
+  names(sbs) <- steps.names
+  
   res <- list(yield = preds,
               variogram = variogram,
-              variogram.model = variogram.model)
-
+              variogram.model = variogram.model,
+              steps = NULL)
+  
+  
+  if (steps){
+  res[[length(res)]] <- sbs
+  }
+  
   if(pb)
     utils::setTxtProgressBar(progress.bar, utils::getTxtProgressBar(progress.bar) + 1)
-
+  
   if (verbose)
     cat('Processing complete!\n')
-
+  
   class(res) <- c('yield', class(res))
   return(res)
 }

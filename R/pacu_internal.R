@@ -121,68 +121,76 @@
 #' @param overwrite whether to overwrite the original file
 #' @noRd
 
-.pa_crop_s2_to_aoi <- function(satellite_images,
+.pa_crop_s2_to_aoi <- function(satellite.images,
                                aoi,
                                overwrite = TRUE){
 
-  for (sat_img in satellite_images) {
+  for (sat.img in satellite.images) {
 
-    image_indices <- .pa_select_s2_files(sat_img, which = 'images')
-    temporary_dir <- tempdir(check = TRUE)
-    bname <- basename(sat_img)
+    image.indices <- .pa_select_s2_files(sat.img, which = 'images')
+    temporary.dir <- tempdir(check = TRUE)
+    bname <- basename(sat.img)
     bname <- strsplit(bname, '\\.')[[1]][1]
-    temporary_dir <- file.path(temporary_dir, bname)
-    reduced_dir <- file.path(temporary_dir, 'reduced/IMG_DATA')
+    temporary.dir <- file.path(temporary.dir, bname)
+    reduced.dir <- file.path(temporary.dir, 'reduced/IMG_DATA')
     
-    dir.create(temporary_dir, showWarnings = FALSE, recursive = TRUE)
-    utils::unzip(sat_img[[1]], overwrite = TRUE, exdir = temporary_dir, junkpaths = TRUE)
-    cmi <- grep('B00', image_indices)
-    cloud_mask <- image_indices[cmi]
-    image_indices <- image_indices[-cmi]
-    dir.create(reduced_dir, recursive = TRUE, showWarnings = FALSE)
-    for (band in image_indices) {
-      band_img <- stars::read_stars(file.path(temporary_dir, band))
-      boundary <- sf::st_geometry(sf::st_transform(aoi, sf::st_crs(band_img)))
-      band_img <- sf::st_crop(band_img, boundary, mask = TRUE)
+    dir.create(temporary.dir, showWarnings = FALSE, recursive = TRUE)
+    imgList <- utils::unzip(sat.img[[1]], 
+                            list = TRUE)
+    files.tgt <- .pa_select_s2_files(sat.img[[1]])
+    files.out <- sapply(files.tgt, function(x) grep(x, imgList[[1]], value = TRUE))
+    utils::unzip(sat.img[[1]], 
+                 files = files.out,
+                 overwrite = TRUE, 
+                 exdir = temporary.dir, 
+                 junkpaths = TRUE)
+    cmi <- grep('B00', image.indices)
+    cloud.mask <- image.indices[cmi]
+    image.indices <- image.indices[-cmi]
+    dir.create(reduced.dir, recursive = TRUE, showWarnings = FALSE)
+    for (band in image.indices) {
+      band.img <- stars::read_stars(file.path(temporary.dir, band))
+      boundary <- sf::st_geometry(sf::st_transform(aoi, sf::st_crs(band.img)))
+      band.img <- sf::st_crop(band.img, boundary, mask = TRUE)
       band <- gsub('\\.jp2', '\\.tif', band)
 
-      img.out <- file.path(reduced_dir, band)
-      stars::write_stars(band_img,
+      img.out <- file.path(reduced.dir, band)
+      stars::write_stars(band.img,
                          img.out)
     }
 
-    if (length(cloud_mask) > 0){
-      file.copy(file.path(temporary_dir, cloud_mask),
-                file.path(reduced_dir, cloud_mask))
+    if (length(cloud.mask) > 0){
+      file.copy(file.path(temporary.dir, cloud.mask),
+                file.path(reduced.dir, cloud.mask))
     }
 
-    metadata <- .pa_select_s2_files(fpath = sat_img, which = 'metadata')
+    metadata <- .pa_select_s2_files(fpath = sat.img, which = 'metadata')
     if (length(metadata) > 0){
-      file.copy(file.path(temporary_dir, metadata),
-                file.path(reduced_dir, metadata))
+      file.copy(file.path(temporary.dir, metadata),
+                file.path(reduced.dir, metadata))
     }
     
-    files_to_zip <- list.files(reduced_dir, recursive = TRUE)
+    files.to.zip <- list.files(reduced.dir, recursive = TRUE)
     if(overwrite){
-      wrt.path <- sat_img[[1]]
+      wrt.path <- sat.img[[1]]
       unlink(wrt.path)
     }else{
-      bname <- basename(sat_img[[1]])
+      bname <- basename(sat.img[[1]])
       f <- strsplit(bname, '\\.')[[1]][1]
       extension <- strsplit(bname, '\\.')[[1]][2]
-      wrt.path <- file.path(dirname(sat_img[[1]]), 
+      wrt.path <- file.path(dirname(sat.img[[1]]), 
                               paste0(f, '-reduced'))
     }
     utils::zip(wrt.path,
-               files = file.path(reduced_dir,
-                                 files_to_zip),
+               files = file.path(reduced.dir,
+                                 files.to.zip),
                flags = '-q') ## might need to adjust this to different OS
     
     ## Deleting temporary folders
-    folders_to_delete <- dir(temporary_dir, pattern = '[.]SAFE')
-    unlink(paste0(normalizePath(temporary_dir), "/", folders_to_delete),
+    folders.to.delete <- dir(temporary.dir, pattern = '[.]SAFE')
+    unlink(paste0(normalizePath(temporary.dir), "/", folders.to.delete),
            recursive = TRUE)
-    unlink(reduced_dir,
+    unlink(reduced.dir,
            recursive = TRUE)
     
   }
@@ -330,26 +338,19 @@
   which <- match.arg(which)
   imgList <- utils::unzip(fpath, list = TRUE)
   bname <- basename(fpath)
-
+  
+  if (!grepl('^S2A|^S2B', x = bname))
+    stop('Only S2A and S2B functions are supported for now.')
+  
+  metadata <- .pa_read_s2_metadata(fpath, to.raw.file = TRUE)
+  graticule <- basename(unlist(metadata$General_Info$Product_Info$Product_Organisation))
+  img.indices <- sapply(graticule, function(x) grep(x, imgList[[1]], value = TRUE))
+  
   cld.str <- 'B00\\.jp2|B00\\.gml'
   cloud_mask <- grep(cld.str, imgList[[1]], ignore.case = TRUE, value = TRUE)
 
   mtd <- grep('MTD_MSI', imgList[[1]], value = TRUE)
-
-  if (length(mtd) < 1) {
-    if(!s.wrns)
-      warning('No metadata found for ', basename(fpath), immediate. = TRUE)
-  } else {mtd <- mtd[[1]]}
-
-  if (grepl('^S2A|^S2B', x = bname)){
-    rel.str <- paste0('IMG_DATA/.{1,}B[0-9]{2,2}.{0,}\\.(jp2|tif)')
-    img.indices <- grep(rel.str, imgList[[1]], value = TRUE)
-  #} else if(grepl('^S2B', x = bname)){
-    #rel.str <- paste0('IMG_DATA/.{1,}B[0-9]{2,2}\\.(jp2|tif)')
-    #img.indices <- grep(rel.str, imgList[[1]], value = TRUE)
-  }else{
-    stop('Only S2A and S2B functions are supported for now.')
-  }
+  
 
   if(which == 'all')
     rel.files <- basename(unlist(c(img.indices, cloud_mask, mtd)))
@@ -401,11 +402,33 @@
 #' @description  Reads the metadata from a S2 file
 #' @name .pa_read_s2_metadata
 #' @rdname .pa_read_s2_metadata
-#' @param fpath a file path pointing to an S2 file
+#' @param fpath a file path pointing to an S2 metadata file
+#' @param to.raw.file whether the file path points to
+#' a raw file. In which case the metadata needs to be extracted.
 #' @return a list containing the file metadata
 #' @noRd
-.pa_read_s2_metadata <- function(fpath) {
-  mtd <- XML::xmlTreeParse(file = fpath)
+.pa_read_s2_metadata <- function(fpath, to.raw.file = FALSE) {
+  if (to.raw.file){
+    flist <- utils::unzip(fpath, list = TRUE )
+    mtd <- grep('MTD_MSI', flist[[1]], value = TRUE)
+    if(length(mtd) < 1)
+      stop('No metadata found in the file. Cannot navigate file organization.')
+    
+    mtd2 <- grep(pattern = mtd, 
+                 flist$Name, 
+                 value = TRUE)
+    unzip(fpath,
+          files = mtd2, 
+          junkpaths = TRUE, 
+          exdir = tempdir())
+    
+    to.xml <- file.path(tempdir(),basename(mtd))
+    
+  }else{
+    to.xml <- fpath
+  }
+  
+  mtd <- XML::xmlTreeParse(file = to.xml)
   mtd <- XML::xmlToList(mtd)
   return(mtd)
 }
@@ -783,8 +806,8 @@
   f1 <-  variogram.list[[1]]
   
   if (test.variogram){
-    test.df.size <- nrow(df) %/% 10
-    test.df <- df[test.df.size, ]
+    test.df.size <- nrow(df) %/% 20
+    test.df <- df[1:test.df.size, ]
     for (i in 1:length(variogram.list)){
       f1 <- variogram.list[[i]]
       test.pred <- gstat::krige(formula,

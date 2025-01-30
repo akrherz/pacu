@@ -24,6 +24,7 @@ pa_yield(
   lag.adj = 0,
   unit.system = c("none", "metric", "standard"),
   remove.crossed.polygons = FALSE,
+  steps = FALSE,
   cores = 1L,
   verbose = TRUE,
   ...
@@ -156,6 +157,9 @@ vehicle polygons that crossed different experimental
 units of the grid. This is intented to prevent from
 diluting the treatment effects. When this argument is
 TRUE, the argument \sQuote{grid} must be supplied.}
+
+\item{steps}{(EXPERIMENTAL) whether to return the intermediate steps 
+of the yield processing algorithm}
 
 \item{cores}{the number of cores used in the operation}
 

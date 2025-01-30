@@ -1,3 +1,29 @@
+## 2025-01-30
+
+- Version 0.1.46
+ 
+- .pa_yield has the option to return the intermediate steps of the algorithms (experimental for now)
+
+- .pa_fit_variogram now checks 5% of the data to make sure predictions are ok
+
+- .pa_read_s2_metadata now call pull the metadata directly from the zip file
+
+- the functions that crop and read files from the zipped satellite file now look for the metadata
+  and use the metadata to find the relevant images. Before, this was done using regular expressions
+  but it was causing some problems.
+
+## 2025-01-23
+
+- .pa_fit_variogram is not checking 10% of the data. It is checking only one value.
+
+- pa_fit_variogram should return an error when all variograms return NAs
+
+- pa_yield should check to make sure that a categorical variable in the formula is already a factor before trying to convert it.
+
+## 2025-01-09
+
+- A user showed me a problem related the grid in pa_yield() function having a third dimension. I need to add a check for that.
+
 ## 2024-12-20
 
 - Version 0.1.45

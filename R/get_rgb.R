@@ -70,10 +70,24 @@ pa_get_rgb <- function(satellite.images,
     bname <- basename(sat.img)
     bname <- strsplit(bname, '\\.')[[1]][1]
     temporary.dir <- tempdir(check = TRUE)
-    temporary.dir <- file.path(temporary.dir, bname)
-    dir.create(temporary.dir, showWarnings = FALSE, recursive = TRUE)
     
-    utils::unzip(sat.img[[1]], overwrite = TRUE, exdir = temporary.dir, junkpaths = TRUE)
+    temporary.dir <- file.path(temporary.dir,'pa_get_rgb', bname)
+    
+    dir.create(temporary.dir, 
+               showWarnings = FALSE,
+               recursive = TRUE)
+    
+    imgList <- utils::unzip(sat.img[[1]], 
+                            list = TRUE)
+    files.tgt <- .pa_select_s2_files(sat.img[[1]])
+    files.out <- sapply(files.tgt, function(x) grep(x, imgList[[1]], value = TRUE))
+    
+    utils::unzip(sat.img[[1]], 
+                 files = files.out,
+                 overwrite = TRUE, 
+                 exdir = temporary.dir, 
+                 junkpaths = TRUE) 
+    
     rs <- list()
     for  (b in rgb.bands){
       bpath <- .pa_get_band(b, temporary.dir, pixel.res, img.formats)
@@ -88,6 +102,8 @@ pa_get_rgb <- function(satellite.images,
 
     img <- do.call(c, rs)
     names(img) <- c('R', 'G', 'B')
+    
+    img <- stars::st_as_stars(img)
 
     metadata.file <- .pa_select_s2_files(sat.img, which = 'metadata')
     metadata.file <- grep(metadata.file, list.files(temporary.dir), value = TRUE)
@@ -109,8 +125,10 @@ pa_get_rgb <- function(satellite.images,
   sorted <- sapply(res, function(x) stars::st_get_dimension_values(x, 'time'))
   sorted <- order(sorted)
   res <- res[sorted]
+  if (length(res) > 1){
   res <- .pa_align_bbox(res)
   res <- .pa_consolidate_dates(res, fun = fun)
+  }
   res <- do.call(c, c(res, along = 'time'))
   class(res) <- c('rgb', class(res))
   return(res)
