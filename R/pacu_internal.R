@@ -417,7 +417,7 @@
     mtd2 <- grep(pattern = mtd, 
                  flist$Name, 
                  value = TRUE)
-    unzip(fpath,
+    utils::unzip(fpath,
           files = mtd2, 
           junkpaths = TRUE, 
           exdir = tempdir())
