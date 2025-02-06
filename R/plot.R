@@ -1,6 +1,4 @@
 #' @title Create a plot from a pacu object
-#' @description  Create interactive or static plots such as yieldmaps, variograms,
-#' and rgb images from pacu objects.
 #' @name pa_plot
 #' @rdname pa_plot
 #' @param x object to be plotted
@@ -10,10 +8,9 @@ pa_plot <- function(x, ...){
   UseMethod('pa_plot', x)
 }
 
-
 #' @param ... additional arguments. None used currently.
 #' @param plot.type type of plot to be produced Defaults to
-#'   yieldmap.
+#'   trial.
 #' @param palette a string representing a color palette from
 #'   \link[grDevices]{hcl.pals}. Defaults to \sQuote{Temps}.
 #' @param main a main title for the plot
@@ -36,9 +33,9 @@ pa_plot <- function(x, ...){
 #' @rdname pa_plot
 #' @export
 #'
-pa_plot.yield <- function(x,
+pa_plot.trial <- function(x,
                           ...,
-                          plot.type = c('yieldmap', 'variogram'),
+                          plot.type = c('trial'),
                           palette = 'Temps',
                           main = '',
                           plot.var = NULL,
@@ -50,41 +47,44 @@ pa_plot.yield <- function(x,
                           breaks = NULL,
                           frame = TRUE,
                           legend.outside = FALSE){
-
+  
   plot.type <- match.arg(plot.type)
   style <- match.arg(style)
-
+  
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
   if(is.null(plot.var))
-    plot.var <- attr(x$yield, 'resp')
-
-  if(plot.type == 'yieldmap'){
-
-  tmap::tmap_options(overlays = NULL, basemaps = NULL)
+    plot.var <- attr(x$trial, 'resp')
+  
+  if(plot.type == 'trial'){
+    
+    tmap::tmap_options(overlays = NULL, basemaps = NULL)
     ## controlling the colors
     cols <- function(n) {hcl.colors(n, palette, rev = TRUE)}
     ## setting the tmap mode
     if(interactive){suppressMessages(tmap::tmap_mode("view"))} else {suppressMessages(tmap::tmap_mode('plot'))}
     ## the basic plot
-    p <- tmap::tm_shape(x$yield)
-
-
-    if (sf::st_geometry_type(x$yield[1, ]) %in% c("POLYGON", 'MULTIPOLYGON')){
-    p <- p +
-      tmap::tm_borders(col = border.col,
-                       lwd = 0.5) +
-      tmap::tm_fill(plot.var,
-                           palette = cols(nbreaks), title = attr(x$yield, 'units'),
-                           style = style,
-                           style.args = list(n = nbreaks))
-
+    p <- tmap::tm_shape(x$trial)
+    
+    
+    if (sf::st_geometry_type(x$trial[1, ]) %in% c("POLYGON", 'MULTIPOLYGON')){
+      p <- p +
+        tmap::tm_borders(col = border.col,
+                         lwd = 0.5) +
+        tmap::tm_fill(plot.var,
+                      palette = cols(nbreaks), title = attr(x$trial, 'units'),
+                      style = style,
+                      style.args = list(n = nbreaks))
+      
     }
-
-    if (sf::st_geometry_type(x$yield[1, ]) %in% c("POINT", 'MULTIPOINT')){
-    p <- p + tmap::tm_dots(col = plot.var,
-                           palette = cols(nbreaks), title = attr(x$yield, 'units'),
-                           style = style,
-                           style.args = list(n = nbreaks))
-
+    
+    if (sf::st_geometry_type(x$trial[1, ]) %in% c("POINT", 'MULTIPOINT')){
+      p <- p + tmap::tm_dots(col = plot.var,
+                             palette = cols(nbreaks), title = attr(x$trial, 'units'),
+                             style = style,
+                             style.args = list(n = nbreaks))
+      
     }
     ## adjusting the layout
     p <- p + tmap::tm_layout(main.title = main,
@@ -92,20 +92,284 @@ pa_plot.yield <- function(x,
                              frame = frame,
                              legend.outside = legend.outside,
                              title.size = 1)
-
+    
     print(p)
   }
+}
 
+#' @param ... additional arguments. None used currently.
+#' @param plot.type type of plot to be produced Defaults to
+#'   yieldmap.
+#' @param palette a string representing a color palette from
+#'   \link[grDevices]{hcl.pals}. Defaults to \sQuote{Temps}.
+#' @param main a main title for the plot
+#' @param plot.var the name of the column to be plotted.
+#'   Defaults to \sQuote{yield}
+#' @param style style applied to the colors
+#' @param interactive logical. Whether to produce
+#'   interactive plots.
+#' @param border.col color of the border for the polygons
+#'   plotted in the yield map
+#' @param scale a numerical value indicating the
+#'   magnification of the graph. A value of 1 produces a
+#'   plot using the default magnification. Greater values
+#'   will produce zoomed in plots.
+#' @param frame logical. Whether to draw the frame around
+#'   the plotting area.
+#' @param extent a bbox object indicating the geographical area to be plotted
+#' @param legend.outside logical. Whether to place the legend outside of the graph.
+#' @param nbreaks numerical value indicating the number of breaks for the color scale.
+#' @param breaks a vector indicating numerical breaks for the color scale.
+#' @param ask whether to ask for user before starting a new page of output. If FALSE, plots are 
+#' arranged using \link[patchwork]{wrap_plots}
+#' @rdname pa_plot
+#' @export
+#'
+pa_plot.yield <- function(x,
+                          ...,
+                          plot.type = c('yieldmap', 'variogram', 'steps'),
+                          palette = 'Temps',
+                          main = '',
+                          plot.var = NULL,
+                          interactive = FALSE,
+                          border.col = 'black',
+                          style =  c("quantile", "pretty", 'equal'),
+                          scale = 1,
+                          nbreaks = 5,
+                          breaks = NULL,
+                          frame = TRUE,
+                          extent = sf::st_bbox(x[['yield']]),
+                          legend.outside = FALSE,
+                          ask = TRUE){
+  
+  plot.type <- match.arg(plot.type)
+  style <- match.arg(style)
+  
+  s.wrns <-  get("suppress.warnings", envir = pacu.options)
+  s.msgs <-  get("suppress.messages", envir = pacu.options)
+  
+  if(is.null(plot.var))
+    plot.var <- attr(x$yield, 'resp')
+  
+  if(plot.type == 'yieldmap'){
+    
+    tmap::tmap_options(overlays = NULL, basemaps = NULL)
+    ## controlling the colors
+    cols <- function(n) {hcl.colors(n, palette, rev = TRUE)}
+    ## setting the tmap mode
+    if(interactive){suppressMessages(tmap::tmap_mode("view"))} else {suppressMessages(tmap::tmap_mode('plot'))}
+    ## the basic plot
+    p <- tmap::tm_shape(x$yield)
+    
+    
+    if (sf::st_geometry_type(x$yield[1, ]) %in% c("POLYGON", 'MULTIPOLYGON')){
+      p <- p +
+        tmap::tm_borders(col = border.col,
+                         lwd = 0.5) +
+        tmap::tm_fill(plot.var,
+                      palette = cols(nbreaks), title = attr(x$yield, 'units'),
+                      style = style,
+                      style.args = list(n = nbreaks))
+      
+    }
+    
+    if (sf::st_geometry_type(x$yield[1, ]) %in% c("POINT", 'MULTIPOINT')){
+      p <- p + tmap::tm_dots(col = plot.var,
+                             palette = cols(nbreaks), title = attr(x$yield, 'units'),
+                             style = style,
+                             style.args = list(n = nbreaks))
+      
+    }
+    ## adjusting the layout
+    p <- p + tmap::tm_layout(main.title = main,
+                             scale = scale,
+                             frame = frame,
+                             legend.outside = legend.outside,
+                             title.size = 1)
+    
+    print(p)
+  }
+  
   if(plot.type == 'variogram'){
-
     if(is.null(x$variogram)){
       stop('Could not find a variogram to plot.')
     }
     vob <- x$variogram
     vf <- x$variogram.model
-    plot(vob, vf)
+    invisible(print(plot(vob, vf)))
+  }
+  
+  
+  if(plot.type == 'steps'){
+    if(is.null(x$steps))
+      stop('No intermediate steps found to plot. Did you set steps = TRUE in pa_yield?')
+    
+    alg <- attr(x$yield, 'algorithm')
+    
+    if(alg == 'simple'){
+      sts <- x$steps
+      
+      colmap <- grDevices::hcl.colors(2, 'Dark 3')
+      names(colmap) <- c('initial points','removed points')
+      
+      fillmap <-  c('initial points' = 'black',
+                    'removed points' = 'transparent')
+      
+      point.size = 0.2 * scale
+      
+      p1 <- ggplot2::ggplot()+
+        ggplot2::geom_sf(data = sts$initial.geometries,
+                         cex = point.size,
+                         ggplot2::aes(col = 'initial points',
+                                      fill = 'initial points'))+
+        ggplot2::labs(col = '', fill = '', title = 'Initial points')
+      
+      removed.indices <- !(sf::st_geometry(sts$initial.geometries) %in% 
+                             sf::st_geometry(sts$final.geometries))
+      
+      p2 <- ggplot2::ggplot()+
+        ggplot2::geom_sf(data = sts$initial.geometries[removed.indices, ],
+                         linewidth = point.size,
+                         ggplot2::aes(col = 'removed points',
+                                      fill = 'removed points'))+
+        ggplot2::labs(col = '', fill = '', title = 'Removed points')
+      
+      if (!any(removed.indices)){
+        
+        if (!s.wrns)
+          warning('No points removed. Plot showing removed points will not be produced.')
+        p2 <- NULL 
+      }
+      
+      plot_list <- list(p1, p2)
+      plot_list <- plot_list[!sapply(plot_list, is.null)] 
+      plot_list <- lapply(plot_list, function(x){
+        x +    
+          ggplot2::scale_color_manual(values = colmap)+
+          ggplot2::scale_fill_manual(values = fillmap)+
+          ggplot2::coord_sf(xlim = extent[c(1,3)], 
+                            ylim = extent[c(2,4)],
+                            expand = TRUE)+
+          ggplot2::theme_bw()+
+          ggplot2::theme(axis.text = ggplot2::element_blank(),
+                         axis.ticks = ggplot2::element_blank())
+      })
+      
+      if (!ask){
+        pp <- patchwork::wrap_plots(plot_list)+
+          patchwork::plot_layout(guides = 'collect')
+        print(pp)
+      }
+      
+      if (ask){
+        grDevices::devAskNewPage(ask = TRUE)
+        invisible(lapply(plot_list, print))
+        grDevices::devAskNewPage(ask = FALSE)
+      }
+    }
+    
+    if (alg == 'ritas'){
+      sts <- x$steps
+      point.size = 0.2 * scale
+      colmap <- grDevices::hcl.colors(6, 'Dark 3')
+      names(colmap) <- c('initial points','harvest polygons', 'tessellated polygons',
+                         'removed polygons', 'apportioned polygons', 'grid')
+      
+      fillmap <-  c('initial points' = 'black',
+                    'harvest polygons' = 'transparent',
+                    'tessellated polygons' = 'transparent',
+                    'removed polygons' = 'transparent',
+                    'apportioned polygons' = 'transparent',
+                    'grid' = 'transparent')
+      
+      p1 <- ggplot2::ggplot()+
+        ggplot2::geom_sf(data = sts$initial.points,
+                         cex = point.size,
+                         ggplot2::aes(col = 'initial points',
+                                      fill = 'initial points'))+
+        ggplot2::labs(col = '', fill = '', title = 'Initial points')
+      
+      p2 <- ggplot2::ggplot()+
+        ggplot2::geom_sf(data = sts$initial.points,
+                         cex = point.size,
+                         ggplot2::aes(col = 'initial points',
+                                      fill = 'initial points'))+
+        ggplot2::geom_sf(data = sts$harvest.polygons,
+                         cex = point.size,
+                         ggplot2::aes(fill = 'harvest polygons',
+                                      col = 'harvest polygons'))+
+        ggplot2::labs(col = '', fill = '', title = 'Harvest polygons')
+      
+      
+      p3 <- ggplot2::ggplot()+
+        ggplot2::geom_sf(data = sts$harvest.polygons,
+                         linewidth = point.size * 0.5,
+                         ggplot2::aes(fill = 'harvest polygons',
+                                      col = 'harvest polygons'))+
+        ggplot2::geom_sf(data = sts$adjusted.polygons,
+                         linewidth = point.size,
+                         ggplot2::aes(col = 'tessellated polygons',
+                                      fill = 'tessellated polygons'))+
+        ggplot2::labs(col = '', fill = '', title = 'Intersected polygons')
+      
+      
+      
+      removed.indices <- !(sf::st_geometry(sts$adjusted.polygons) %in% 
+                             sf::st_geometry(sts$cleaned.polygons))
+      
+      p4 <- ggplot2::ggplot()+
+        ggplot2::geom_sf(data = sts$adjusted.polygons[removed.indices, ],
+                         linewidth = point.size,
+                         ggplot2::aes(col = 'removed polygons',
+                                      fill = 'removed polygons'))+
+        ggplot2::labs(col = '', fill = '', title = 'Removed polygons')
+      
+      if (length(removed.indices) < 1){
+        if (!s.wrns)
+          warning('No points removed. Plot showing removed points will not be produced.')
+        p4 <- NULL 
+      }
+      
+      
+      p5 <- ggplot2::ggplot()+
+        ggplot2::geom_sf(data = sts$apportioned.polygons,
+                         linewidth = point.size,
+                         ggplot2::aes(col = 'apportioned polygons',
+                                      fill = 'apportioned polygons'))+
+        ggplot2::labs(col = '', fill = '', title = 'Apportioned polygons')
+      
+      
+      plot_list <- list(p1, p2, p3, p4, p5)
+      plot_list <- plot_list[!sapply(plot_list, is.null)] 
+      plot_list <- lapply(plot_list, function(x){
+        x +    
+          ggplot2::scale_color_manual(values = colmap)+
+          ggplot2::scale_fill_manual(values = fillmap)+
+          ggplot2::coord_sf(xlim = extent[c(1,3)], 
+                            ylim = extent[c(2,4)],
+                            expand = TRUE)+
+          ggplot2::theme_bw()+
+          ggplot2::theme(axis.text = ggplot2::element_blank(),
+                         axis.ticks = ggplot2::element_blank())
+      })
+      
+      if (!ask){
+        pp <- patchwork::wrap_plots(plot_list)+
+          patchwork::plot_layout(guides = 'collect')
+        print(pp)
+      }
+      
+      if (ask){
+        grDevices::devAskNewPage(ask = TRUE)
+        invisible(lapply(plot_list, print))
+        grDevices::devAskNewPage(ask = FALSE)
+      }
+    }
+    
   }
 }
+
+
 
 
 

@@ -35,7 +35,7 @@
 #'   units. The default is NULL, in which case the function
 #'   attempts to guess the units according to the values of
 #'   the variable.
-#' @param grid an sf object containing the prediction grid.
+#' @param grid an sf or pa_trial object containing the prediction grid.
 #'   If the user is processing yield data coming from a
 #'   research trial (i.e. follows a trial design), the user
 #'   can pass the sf object containing the trial design
@@ -43,7 +43,7 @@
 #'   \sQuote{formula} contains any predictions, the
 #'   predictor should be included in the sf object supplied
 #'   to this argument. polygons for which the predictions
-#'   generated
+#'   generated.
 #' @param algorithm algorithm used to generate the yield
 #'   object.
 #' @param formula formula defining the relationship between
@@ -113,7 +113,7 @@
 #'   diluting the treatment effects. When this argument is
 #'   TRUE, the argument \sQuote{grid} must be supplied.
 #' @param cores the number of cores used in the operation
-#' @param steps (EXPERIMENTAL) whether to return the intermediate steps 
+#' @param steps EXPERIMENTAL - whether to return the intermediate steps 
 #' of the yield processing algorithm
 #' @param verbose whether to print function progress.
 #'   \sQuote{FALSE or 0} will suppress details. \sQuote{TRUE
@@ -210,6 +210,10 @@ pa_yield <- function(input,
   
   
   if(!is.null(grid)){
+    
+    if (inherits(grid, 'trial')){
+      grid <- grid[['trial']]
+    }
     
     if (!inherits(grid, 'sf')) {
       grid <- sf::st_as_sf(grid)

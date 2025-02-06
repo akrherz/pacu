@@ -2,6 +2,7 @@
 % Please edit documentation in R/plot.R
 \name{pa_plot}
 \alias{pa_plot}
+\alias{pa_plot.trial}
 \alias{pa_plot.yield}
 \alias{pa_plot.veg.index}
 \alias{pa_plot.rgb}
@@ -10,10 +11,10 @@
 \usage{
 pa_plot(x, ...)
 
-\method{pa_plot}{yield}(
+\method{pa_plot}{trial}(
   x,
   ...,
-  plot.type = c("yieldmap", "variogram"),
+  plot.type = c("trial"),
   palette = "Temps",
   main = "",
   plot.var = NULL,
@@ -25,6 +26,25 @@ pa_plot(x, ...)
   breaks = NULL,
   frame = TRUE,
   legend.outside = FALSE
+)
+
+\method{pa_plot}{yield}(
+  x,
+  ...,
+  plot.type = c("yieldmap", "variogram", "steps"),
+  palette = "Temps",
+  main = "",
+  plot.var = NULL,
+  interactive = FALSE,
+  border.col = "black",
+  style = c("quantile", "pretty", "equal"),
+  scale = 1,
+  nbreaks = 5,
+  breaks = NULL,
+  frame = TRUE,
+  extent = sf::st_bbox(x[["yield"]]),
+  legend.outside = FALSE,
+  ask = TRUE
 )
 
 \method{pa_plot}{veg.index}(
@@ -105,6 +125,11 @@ the plotting area.}
 
 \item{legend.outside}{logical. Whether to place the legend outside of the graph.}
 
+\item{extent}{a bbox object indicating the geographical area to be plotted}
+
+\item{ask}{whether to ask for user before starting a new page of output. If FALSE, plots are 
+arranged using \link[patchwork]{wrap_plots}}
+
 \item{by}{a string or vector of strings used to group the data 
 when plotting. Defaults to 'year'}
 
@@ -146,8 +171,7 @@ set.}
 No return value, called for side effects
 }
 \description{
-Create interactive or static plots such as yieldmaps, variograms,
-and rgb images from pacu objects.
+Create a plot from a pacu object
 }
 \examples{
 \dontrun{

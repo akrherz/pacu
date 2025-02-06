@@ -1,3 +1,20 @@
+## 2025-01-04
+
+- Version 0.1.48
+
+- implemented pa_plot method for intermediate steps. this is still experimental.
+
+## 2025-01-30
+
+- Version 0.1.47
+
+- improvements to pa_trial(). the function is not ready to be released but it is 
+  coming close.
+
+- pa_plot method for pa_trial objects has also been implemented. 
+  
+- pa_yield also accepts a "trial" object in the grid argument now.
+
 ## 2025-01-30
 
 - Version 0.1.46

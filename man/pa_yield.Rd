@@ -65,7 +65,7 @@ units. The default is NULL, in which case the function
 attempts to guess the units according to the values of
 the variable.}
 
-\item{grid}{an sf object containing the prediction grid.
+\item{grid}{an sf or pa_trial object containing the prediction grid.
 If the user is processing yield data coming from a
 research trial (i.e. follows a trial design), the user
 can pass the sf object containing the trial design
@@ -73,7 +73,7 @@ information to this argument. If the argument
 \sQuote{formula} contains any predictions, the
 predictor should be included in the sf object supplied
 to this argument. polygons for which the predictions
-generated}
+generated.}
 
 \item{algorithm}{algorithm used to generate the yield
 object.}
@@ -158,7 +158,7 @@ units of the grid. This is intented to prevent from
 diluting the treatment effects. When this argument is
 TRUE, the argument \sQuote{grid} must be supplied.}
 
-\item{steps}{(EXPERIMENTAL) whether to return the intermediate steps 
+\item{steps}{EXPERIMENTAL - whether to return the intermediate steps 
 of the yield processing algorithm}
 
 \item{cores}{the number of cores used in the operation}
