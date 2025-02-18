@@ -209,7 +209,7 @@ pa_plot.yield <- function(x,
     if(alg == 'simple'){
       sts <- x$steps
       
-      colmap <- grDevices::hcl.colors(2, 'Dark 3')
+      colmap <- c('#1A85FF', '#DC3220')
       names(colmap) <- c('initial points','removed points')
       
       fillmap <-  c('initial points' = 'black',
@@ -271,7 +271,7 @@ pa_plot.yield <- function(x,
     if (alg == 'ritas'){
       sts <- x$steps
       point.size = 0.2 * scale
-      colmap <- grDevices::hcl.colors(6, 'Dark 3')
+      colmap <- c('#E66100', '#D41159', '#1A85FF', '#DC3220', '#40B0A6', 'black')
       names(colmap) <- c('initial points','harvest polygons', 'tessellated polygons',
                          'removed polygons', 'apportioned polygons', 'grid')
       
